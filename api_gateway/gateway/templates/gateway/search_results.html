@@ -1,0 +1,64 @@
+{% extends 'gateway/base.html' %}
+{% block content %}
+<h1>Search Results for <span style="color: var(--accent);">"{{ query }}"</span></h1>
+<div class="grid">
+    {% for p in products %}
+    <div class="card" style="padding: 1.5rem; border-radius: 20px; transition: 0.3s; background: white;">
+        <span class="tag" style="background: var(--accent); color: white; border-radius: 8px; font-weight: 700;">{{ p.type|title }} | {{ p.brand }}</span>
+        
+        <!-- Product Image -->
+        <div style="height: 150px; display: flex; align-items: center; justify-content: center; margin: 1rem 0; border-radius: 12px; overflow: hidden; background: #f8fafc;">
+            {% if p.image_url %}
+                <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+            {% else %}
+                <div style="font-size: 3rem; opacity: 0.2;">
+                    {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% else %}👕{% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <h3 style="margin-top: 0.5rem; min-height: 3rem;">{{ p.name }}</h3>
+        
+        <div style="font-size: 0.9em; color: var(--text-muted); flex-grow: 1; line-height: 1.6;">
+            {% if p.type == 'laptop' %}
+                <strong>Core:</strong> {{ p.core }} | <strong>RAM:</strong> {{ p.ram }}<br>
+                <strong>Disk:</strong> {{ p.disk }} | <strong>Screen:</strong> {{ p.screen }}
+            {% elif p.type == 'mobile' %}
+                <strong>Screen:</strong> {{ p.screen }} | <strong>Camera:</strong> {{ p.camera }}<br>
+                <strong>RAM:</strong> {{ p.ram }} | <strong>Storage:</strong> {{ p.storage }}<br>
+                <strong>Battery:</strong> {{ p.battery }}
+            {% else %}
+                <strong>Danh mục:</strong> {{ p.category }} | <strong>Màu sắc:</strong> {{ p.color }}<br>
+                <strong>Chất liệu:</strong> {{ p.material }} | <strong>Size:</strong> {{ p.size|join:", " }}
+            {% endif %}
+        </div>
+        
+        <div class="price">${{ p.price }}</div>
+        
+        <form action="{% url 'cart' %}" method="post" style="display: flex; gap: 10px; margin-top: 10px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            <input type="hidden" name="product_type" value="{{ p.type }}">
+            <input type="hidden" name="product_name" value="{{ p.name }}">
+            <input type="hidden" name="price" value="{{ p.price }}">
+            {% if p.type == 'clothes' %}
+            <select name="selected_size" required style="width: 75px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white; font-size: 0.9rem;">
+                <option value="">Size</option>
+                {% for s in p.size %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+            <input type="number" name="qty" value="1" min="1" max="{{ p.stock|default:10 }}" style="width: 70px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white; font-size: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex-grow: 1;">Add to Cart</button>
+        </form>
+    </div>
+    {% empty %}
+    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--surface-color); border-radius: 16px; border: 1px solid var(--glass-border);">
+        <h2 style="color: var(--text-muted);">No results found.</h2>
+        <a href="{% url 'home' %}" class="btn btn-primary" style="margin-top: 1rem;">Go Back Home</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

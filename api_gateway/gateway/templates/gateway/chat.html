@@ -1,0 +1,238 @@
+{% extends 'gateway/base.html' %}
+{% block content %}
+<style>
+    .chat-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 70vh;
+    }
+    .chat-header {
+        padding: 20px 30px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(29, 78, 216, 0.9));
+        color: white;
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .chat-header .badge {
+        font-size: 0.8rem;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .chat-messages {
+        flex-grow: 1;
+        padding: 30px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .message {
+        display: flex;
+        flex-direction: column;
+        max-width: 80%;
+    }
+    .message.user {
+        align-self: flex-end;
+    }
+    .message-bubble {
+        padding: 15px 20px;
+        border-radius: 20px;
+        font-size: 1.1rem;
+        line-height: 1.5;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .message.user .message-bubble {
+        background: var(--accent);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+    .message.ai .message-bubble {
+        background: white;
+        color: var(--text-main);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--glass-border);
+    }
+    .chat-input {
+        padding: 20px 30px;
+        background: rgba(255, 255, 255, 0.9);
+        border-top: 1px solid var(--glass-border);
+        display: flex;
+        gap: 15px;
+    }
+    .chat-input input {
+        flex-grow: 1;
+        padding: 15px 25px;
+        border: 1px solid var(--glass-border);
+        border-radius: 30px;
+        font-size: 1.1rem;
+        font-family: 'Outfit';
+        outline: none;
+        background: #f8fafc;
+        transition: 0.3s;
+    }
+    .chat-input input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        background: white;
+    }
+    .chat-input button {
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        color: white;
+        border: none;
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.2rem;
+        transition: 0.3s;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    }
+    .chat-input button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+    
+    .chat-recommendations {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .chat-product-card {
+        background: #f8fafc;
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 0.95rem;
+        width: 200px;
+    }
+    .chat-product-card h4 { margin: 0 0 5px 0; color: var(--accent); font-size: 1rem;}
+    .chat-product-card .price { font-size: 1.1rem; color: #1e293b; font-weight: 800; margin: 5px 0;}
+    .typing-indicator { font-style: italic; color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; display: none; margin-left: 30px;}
+</style>
+
+<div class="chat-container">
+    <div class="chat-header">
+        ✨ TechNova AI Assistant <span class="badge">BETA</span>
+    </div>
+    
+    <div class="chat-messages" id="chatbox">
+        <div class="message ai">
+            <div class="message-bubble">
+                Xin chào! 👋 Tôi là trợ lý AI (RAG + RecSys). Tôi đã nạp xong toàn bộ Knowledge Base và có thể giúp bạn tìm được mẫu laptop, điện thoại, hoặc phụ kiện ưng ý nhất. Bạn cần tìm gì hôm nay?
+            </div>
+        </div>
+    </div>
+    
+    <div class="typing-indicator" id="typing">AI đang chạy thuật toán Recommend & Search...</div>
+    
+    <div class="chat-input" id="chat-form">
+        <input type="text" id="userInput" placeholder="Nhập yêu cầu của bạn (ví dụ: 'laptop gaming', 'điện thoại giá rẻ')..." autocomplete="off">
+        <button id="sendBtn">▶</button>
+    </div>
+</div>
+
+<script>
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const typing = document.getElementById('typing');
+
+    function appendMessage(text, sender, recommendations = null) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        
+        let html = `<div class="message-bubble">${text}</div>`;
+        
+        if (recommendations && recommendations.length > 0) {
+            let cardsHtml = '<div class="chat-recommendations">';
+            recommendations.forEach(p => {
+                let name = p.name || `Sản phẩm ${p.id}`;
+                let price = p.price ? p.price + 'đ' : 'Liên hệ';
+                cardsHtml += `
+                    <div class="chat-product-card">
+                        <h4>${name}</h4>
+                        <div class="price">${price}</div>
+                        <span class="tag">${p.category || 'Nổi bật'}</span>
+                    </div>
+                `;
+            });
+            cardsHtml += '</div>';
+            html += cardsHtml;
+        }
+        
+        msgDiv.innerHTML = html;
+        chatbox.appendChild(msgDiv);
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function sendMessage() {
+        const text = userInput.value.trim();
+        if(!text) return;
+        
+        appendMessage(text, 'user');
+        userInput.value = '';
+        typing.style.display = 'block';
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        try {
+            const response = await fetch('/api/chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ query: text })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                appendMessage(data.response, 'ai', data.recommendations);
+            } else {
+                appendMessage('Xin lỗi, tôi đang xử lý lỗi backend. Lỗi: ' + (data.error || JSON.stringify(data)), 'ai');
+            }
+        } catch (e) {
+            appendMessage('Lỗi kết nối đến TechNova AI. Hãy đảm bảo ai-service đang chạy trên cổng 8006.', 'ai');
+        } finally {
+            typing.style.display = 'none';
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') sendMessage();
+    });
+</script>
+{% endblock %}

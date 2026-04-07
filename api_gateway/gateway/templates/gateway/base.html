@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechNova Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --surface-color: rgba(255, 255, 255, 0.8);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --danger: #ef4444;
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--text-main);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Navbar */
+        nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        .brand { font-size: 1.8rem; font-weight: 800; color: #1e293b; text-decoration: none; display: flex; align-items: center; gap: 8px;}
+        .brand span { color: var(--accent); }
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-links a { color: var(--text-main); text-decoration: none; font-weight: 600; transition: color 0.3s; font-size: 1.1rem;}
+        .nav-links a:hover { color: var(--accent); }
+        .search-bar { display: flex; background: #fff; border-radius: 20px; overflow: hidden; border: 1px solid var(--glass-border); min-width: 300px;}
+        .search-bar input { background: transparent; border: none; padding: 12px 20px; color: #1e293b; outline: none; width: 100%; font-family: 'Outfit'; font-size: 1rem;}
+        .search-bar button { background: var(--accent); border: none; padding: 10px 24px; color: #fff; cursor: pointer; transition: 0.3s; font-weight: 600; font-family: 'Outfit'; font-size: 1rem;}
+        .search-bar button:hover { background: var(--accent-hover); }
+        /* Main */
+        main { padding: 3rem 5%; flex-grow: 1; margin-bottom: 2rem;}
+        /* Cards */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .card { 
+            background: #ffffff; 
+            border: 1px solid var(--glass-border); border-radius: 16px; 
+            padding: 1.5rem; transition: transform 0.3s, box-shadow 0.3s;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-color: var(--accent); }
+        .card h3 { margin: 0; font-size: 1.25rem; }
+        .tag { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; background: #eff6ff; color: #2563eb; width: max-content; }
+        .price { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
+        /* Buttons */
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Outfit'; font-weight: 600; transition: 0.3s; text-decoration: none; text-align: center; display: inline-block; font-size: 1rem; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 15px var(--accent-hover); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        /* Alerts */
+        .alerts { padding: 1rem 5%; margin-top: 1rem; }
+        .alert { background: rgba(59, 130, 246, 0.2); border-left: 4px solid var(--accent); padding: 15px; margin-bottom: 10px; border-radius: 4px; font-size: 1.1rem; }
+        .alert-error { background: rgba(239, 68, 68, 0.2); border-left-color: var(--danger); }
+        /* Forms */
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.2rem; }
+        .form-group label { font-weight: 600; }
+        .form-group input, .form-group select { padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: #fff; color: #1e293b; font-family: 'Outfit'; font-size: 1rem; }
+        
+        /* AI Chat Button */
+        .chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            text-decoration: none;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+            transition: transform 0.3s, box-shadow 0.3s;
+            z-index: 1000;
+        }
+        .chat-fab:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 15px 35px rgba(37, 99, 235, 0.6);
+        }
+    </style>
+</head>
+<body>
+    {% if request.path != '/login/' and request.path != '/register/' %}
+    <nav>
+        <a href="{% url 'home' %}" class="brand">Tech<span>Nova</span></a>
+        
+        {% if request.path != '/dashboard/' and request.path != '/cart/' %}
+        <form action="{% url 'search' %}" method="get" class="search-bar">
+            <input type="text" name="q" placeholder="Tìm kiếm laptop, điện thoại..." required>
+            <button type="submit">Tìm kiếm</button>
+        </form>
+        {% endif %}
+
+        <div class="nav-links">
+            {% if request.session.role == 'customer' or not request.session.role %}
+                <a href="{% url 'cart' %}">Giỏ hàng (<span id="cart-count">{% if request.session.cart %}{{ request.session.cart|length }}{% else %}0{% endif %}</span>)</a>
+            {% endif %}
+            
+            {% if request.session.user_id %}
+                {% if request.session.role|lower in 'staff admin' %}
+                    <a href="{% url 'dashboard' %}" style="color: var(--accent); font-weight: 700;">📊 Bảng Quản Trị</a>
+                {% endif %}
+                <a href="{% url 'logout' %}">Đăng xuất</a>
+            {% else %}
+                <a href="{% url 'login' %}">Đăng nhập</a>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+    
+    <div class="alerts">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'error' %}alert-error{% endif %}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if request.path != '/chat/' %}
+    <!-- AI Chat FAB -->
+    <a href="{% url 'chat' %}" class="chat-fab" title="Tư vấn AI">
+        💬
+    </a>
+    {% endif %}
+</body>
+</html>

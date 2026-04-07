@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python api_gateway/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python customer_service/manage.py runserver 0.0.0.0:8001
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  staff-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python staff_service/manage.py runserver 0.0.0.0:8002
+    volumes:
+      - .:/app
+    ports:
+      - "8002:8002"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  laptop-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python laptop_service/manage.py runserver 0.0.0.0:8003
+    volumes:
+      - .:/app
+    ports:
+      - "8003:8003"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  mobile-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python mobile_service/manage.py runserver 0.0.0.0:8004
+    volumes:
+      - .:/app
+    ports:
+      - "8004:8004"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  clothes-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python clothes_service/manage.py runserver 0.0.0.0:8005
+    volumes:
+      - .:/app
+    ports:
+      - "8005:8005"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  ai-service:
+    build:
+      context: ./ai_service
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8006
+    volumes:
+      - ./ai_service:/app
+      - ./ai_artifacts:/app/ai_artifacts
+    ports:
+      - "8006:8006"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
