@@ -6,18 +6,21 @@
     <div class="card" style="padding: 1.5rem; border-radius: 20px; transition: 0.3s; background: white;">
         <span class="tag" style="background: var(--accent); color: white; border-radius: 8px; font-weight: 700;">{{ p.type|title }} | {{ p.brand }}</span>
         
-        <!-- Product Image -->
-        <div style="height: 150px; display: flex; align-items: center; justify-content: center; margin: 1rem 0; border-radius: 12px; overflow: hidden; background: #f8fafc;">
-            {% if p.image_url %}
-                <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-            {% else %}
-                <div style="font-size: 3rem; opacity: 0.2;">
-                    {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% else %}👕{% endif %}
-                </div>
-            {% endif %}
-        </div>
+        <!-- Link Wrapping Image & Title -->
+        <a href="{% url 'product_detail' p.type p.id %}" style="text-decoration: none; color: inherit; display: block;">
+            <!-- Product Image -->
+            <div style="height: 150px; display: flex; align-items: center; justify-content: center; margin: 1rem 0; border-radius: 12px; overflow: hidden; background: #f8fafc;">
+                {% if p.image_url %}
+                    <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                {% else %}
+                    <div style="font-size: 3rem; opacity: 0.2;">
+                        {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% elif p.type == 'book' %}📚{% else %}👕{% endif %}
+                    </div>
+                {% endif %}
+            </div>
 
-        <h3 style="margin-top: 0.5rem; min-height: 3rem;">{{ p.name }}</h3>
+            <h3 style="margin-top: 0.5rem; min-height: 3rem;">{{ p.name }}</h3>
+        </a>
         
         <div style="font-size: 0.9em; color: var(--text-muted); flex-grow: 1; line-height: 1.6;">
             {% if p.type == 'laptop' %}
@@ -27,6 +30,9 @@
                 <strong>Screen:</strong> {{ p.screen }} | <strong>Camera:</strong> {{ p.camera }}<br>
                 <strong>RAM:</strong> {{ p.ram }} | <strong>Storage:</strong> {{ p.storage }}<br>
                 <strong>Battery:</strong> {{ p.battery }}
+            {% elif p.type == 'book' %}
+                <strong>Tác giả:</strong> {{ p.author }} | <strong>Thể loại:</strong> {{ p.category }}<br>
+                <strong>Kho:</strong> {{ p.stock }}
             {% else %}
                 <strong>Danh mục:</strong> {{ p.category }} | <strong>Màu sắc:</strong> {{ p.color }}<br>
                 <strong>Chất liệu:</strong> {{ p.material }} | <strong>Size:</strong> {{ p.size|join:", " }}

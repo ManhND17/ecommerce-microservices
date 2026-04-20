@@ -85,3 +85,15 @@ services:
       - "8006:8006"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  book-service:
+    build:
+      context: ./book_service
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8007
+    volumes:
+      - ./book_service:/app
+    ports:
+      - "8007:8007"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -9,6 +9,7 @@ STAFF_SERVICE_URL = "http://staff-service:8002/api/staff/"
 LAPTOP_SERVICE_URL = "http://laptop-service:8003/api/laptops/"
 MOBILE_SERVICE_URL = "http://mobile-service:8004/api/mobiles/"
 CLOTHES_SERVICE_URL = "http://clothes-service:8005/clothes/"
+BOOK_SERVICE_URL = "http://book-service:8007/api/books/"
 AI_SERVICE_URL = "http://ai-service:8006/api/chat/"
 
 def fetch_data(url, params=None):
@@ -20,17 +21,30 @@ def fetch_data(url, params=None):
         print(f"Error fetching {url}: {e}")
         return []
 
+def normalize_products(products):
+    for p in products:
+        if 'author' in p and 'type' not in p:
+            p['type'] = 'book'
+        if 'title' in p and 'name' not in p:
+            p['name'] = p['title']
+        if 'author' in p and 'brand' not in p:
+            p['brand'] = p['author']
+    return products
+
 def home_view(request):
     with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_books = executor.submit(fetch_data, BOOK_SERVICE_URL)
         future_laptops = executor.submit(fetch_data, LAPTOP_SERVICE_URL)
         future_mobiles = executor.submit(fetch_data, MOBILE_SERVICE_URL)
         future_clothes = executor.submit(fetch_data, CLOTHES_SERVICE_URL)
         
+        books = future_books.result()
         laptops = future_laptops.result()
         mobiles = future_mobiles.result()
         clothes = future_clothes.result()
     
-    products = laptops + mobiles + clothes
+    products = normalize_products(books + laptops + mobiles + clothes)
+            
     return render(request, 'gateway/home.html', {'products': products})
 
 def search_view(request):
@@ -39,15 +53,26 @@ def search_view(request):
         return redirect('home')
         
     with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_books = executor.submit(fetch_data, BOOK_SERVICE_URL, {'q': q})
         future_laptops = executor.submit(fetch_data, LAPTOP_SERVICE_URL, {'q': q})
         future_mobiles = executor.submit(fetch_data, MOBILE_SERVICE_URL, {'q': q})
         future_clothes = executor.submit(fetch_data, CLOTHES_SERVICE_URL + 'search/', {'q': q})
         
+        books = future_books.result()
         laptops = future_laptops.result()
         mobiles = future_mobiles.result()
         clothes = future_clothes.result()
     
-    products = laptops + mobiles + clothes
+    products = normalize_products(books + laptops + mobiles + clothes)
+    
+    # Log search behavior
+    try:
+        from .models import SearchLog
+        user_id = request.session.get('user_id')
+        SearchLog.objects.create(user_id=user_id, query_text=q)
+    except Exception as e:
+        print(f"Error logging search: {e}")
+        
     return render(request, 'gateway/search_results.html', {'products': products, 'query': q})
 
 def login_view(request):
@@ -144,6 +169,20 @@ def cart_view(request):
             size_msg = f" (Size {product_size})" if product_size else ""
             messages.success(request, f'Đã thêm {product_name}{size_msg} vào giỏ hàng.')
             
+            # Log add to cart action
+            try:
+                from .models import InteractionLog
+                user_id = request.session.get('user_id')
+                InteractionLog.objects.create(
+                    user_id=user_id,
+                    product_id=str(product_id),
+                    product_type=product_type,
+                    action_type='cart'
+                )
+            except Exception as e:
+                print(f"Tracking cart error: {e}")
+            
+            
         elif action == 'remove':
             cart_key_to_remove = request.POST.get('cart_key', cart_key)
             if cart_key_to_remove in cart:
@@ -164,15 +203,17 @@ def dashboard_view(request):
         return redirect('login')
         
     with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_books = executor.submit(fetch_data, BOOK_SERVICE_URL)
         future_laptops = executor.submit(fetch_data, LAPTOP_SERVICE_URL)
         future_mobiles = executor.submit(fetch_data, MOBILE_SERVICE_URL)
         future_clothes = executor.submit(fetch_data, CLOTHES_SERVICE_URL)
         
+        books = future_books.result()
         laptops = future_laptops.result()
         mobiles = future_mobiles.result()
         clothes = future_clothes.result()
         
-    return render(request, 'gateway/dashboard.html', {'laptops': laptops, 'mobiles': mobiles, 'clothes': clothes})
+    return render(request, 'gateway/dashboard.html', {'books': books, 'laptops': laptops, 'mobiles': mobiles, 'clothes': clothes})
 
 def product_action_view(request, product_type):
     role = str(request.session.get('role', '')).lower()
@@ -183,6 +224,8 @@ def product_action_view(request, product_type):
         url = LAPTOP_SERVICE_URL
     elif product_type == 'mobile':
         url = MOBILE_SERVICE_URL
+    elif product_type == 'book':
+        url = BOOK_SERVICE_URL
     else:
         url = CLOTHES_SERVICE_URL
     
@@ -238,3 +281,78 @@ def ai_chat_api(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def track_click_view(request):
+    """API for frontend to ping when a product is viewed"""
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            product_id = body.get('product_id')
+            product_type = body.get('product_type')
+            
+            if product_id and product_type:
+                from .models import InteractionLog
+                user_id = request.session.get('user_id')
+                InteractionLog.objects.create(
+                    user_id=user_id,
+                    product_id=str(product_id),
+                    product_type=product_type,
+                    action_type='click'
+                )
+                return JsonResponse({'status': 'ok'})
+        except Exception as e:
+            print(f"Tracking click error: {e}")
+    return JsonResponse({'status': 'error'}, status=400)
+
+def export_analytics_view(request):
+    """API strictly for AI Service to sync knowledge base"""
+    from django.db.models import Count
+    from .models import InteractionLog, SearchLog
+    
+    interactions = InteractionLog.objects.values('product_type', 'product_id', 'action_type').annotate(count=Count('id'))
+    recent_searches = list(SearchLog.objects.order_by('-created_at')[:200].values_list('query_text', flat=True))
+    
+    return JsonResponse({
+        'interactions': list(interactions),
+        'recent_searches': recent_searches
+    })
+
+def product_detail_view(request, p_type, p_id):
+    if p_type == 'laptop':
+        url = f"{LAPTOP_SERVICE_URL}{p_id}/"
+    elif p_type == 'mobile':
+        url = f"{MOBILE_SERVICE_URL}{p_id}/"
+    elif p_type == 'clothes':
+        url = f"{CLOTHES_SERVICE_URL}{p_id}/"
+    elif p_type == 'book':
+        url = f"{BOOK_SERVICE_URL}{p_id}/"
+    else:
+        messages.error(request, 'Sản phẩm không hợp lệ.')
+        return redirect('home')
+        
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            product = response.json()
+            product['type'] = p_type
+            normalize_products([product])
+            
+            # Backend analytic tracking for the click/view
+            try:
+                from .models import InteractionLog
+                user_id = request.session.get('user_id')
+                InteractionLog.objects.create(
+                    user_id=user_id,
+                    product_id=str(p_id),
+                    product_type=p_type,
+                    action_type='click'
+                )
+            except Exception as e:
+                print(f"Tracking error in detail view: {e}")
+                
+            return render(request, 'gateway/product_detail.html', {'p': product})
+    except Exception as e:
+        print(f"Gateway Detail view network error: {e}")
+        
+    messages.error(request, 'Sản phẩm này tạm thời không khả dụng.')
+    return redirect('home')

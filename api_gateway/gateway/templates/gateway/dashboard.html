@@ -9,6 +9,7 @@
                 <button onclick="switchTab('laptop')" id="tab-laptop" class="tab-btn active" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">💻 Laptop</button>
                 <button onclick="switchTab('mobile')" id="tab-mobile" class="tab-btn" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">📱 Điện thoại</button>
                 <button onclick="switchTab('clothes')" id="tab-clothes" class="tab-btn" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">👕 Quần áo</button>
+                <button onclick="switchTab('book')" id="tab-book" class="tab-btn" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">📚 Sách</button>
             </div>
         </div>
         <div style="display: flex; gap: 1rem;">
@@ -56,6 +57,41 @@
                             <button onclick="openEditLaptopModal('{{ l.id }}', '{{ l.name }}', '{{ l.brand }}', '{{ l.core }}', '{{ l.ram }}', '{{ l.disk }}', '{{ l.screen }}', '{{ l.price }}', '{{ l.stock }}', '{{ l.image_url }}')" class="btn" style="background: #fbbf24; color: white; padding: 6px 12px; font-size: 0.85rem;">Sửa</button>
                             <form action="{% url 'product_action' 'laptop' %}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa không?')">
                                 {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ l.id }}">
+                                <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Xóa</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <!-- Book Table Body -->
+            <tbody id="book-body" style="display: none;">
+                {% for b in books %}
+                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 1.2rem;">
+                        <div style="width: 60px; height: 60px; background: #f8fafc; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9;">
+                            {% if b.image_url %}
+                                <img src="{{ b.image_url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            {% else %}
+                                <span style="font-size: 1.5rem; opacity: 0.3;">📚</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="padding: 1.2rem;">
+                        <div style="font-weight: 700; color: #1e293b;">{{ b.title }}</div>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">{{ b.author }} | {{ b.category }}</div>
+                    </td>
+                    <td style="padding: 1.2rem;"><span class="tag" style="background: #f0fdf4; color: #16a34a;">NXB</span></td>
+                    <td style="padding: 1.2rem; font-weight: 800; color: var(--accent);">{{ b.price|floatformat:"0"|intcomma }}</td>
+                    <td style="padding: 1.2rem;">
+                        <span style="font-weight: 600;" class="{% if b.stock < 5 %}stock-low{% endif %}">{{ b.stock }}</span>
+                    </td>
+                    <td style="padding: 1.2rem;">
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="openEditBookModal('{{ b.id }}', '{{ b.title|escapejs }}', '{{ b.author|escapejs }}', '{{ b.category|escapejs }}', '{{ b.price }}', '{{ b.stock }}', '{{ b.image_url|escapejs }}')" class="btn" style="background: #fbbf24; color: white; padding: 6px 12px; font-size: 0.85rem;">Sửa</button>
+                            <form action="{% url 'product_action' 'book' %}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa không?')">
+                                {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ b.id }}">
                                 <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Xóa</button>
                             </form>
                         </div>
@@ -186,9 +222,11 @@ function switchTab(tab) {
     document.getElementById('laptop-body').style.display = tab === 'laptop' ? 'table-row-group' : 'none';
     document.getElementById('mobile-body').style.display = tab === 'mobile' ? 'table-row-group' : 'none';
     document.getElementById('clothes-body').style.display = tab === 'clothes' ? 'table-row-group' : 'none';
+    document.getElementById('book-body').style.display = tab === 'book' ? 'table-row-group' : 'none';
     document.getElementById('tab-laptop').classList.toggle('active', tab === 'laptop');
     document.getElementById('tab-mobile').classList.toggle('active', tab === 'mobile');
     document.getElementById('tab-clothes').classList.toggle('active', tab === 'clothes');
+    document.getElementById('tab-book').classList.toggle('active', tab === 'book');
 }
 
 function openAddModal() {
@@ -247,6 +285,18 @@ function openAddModal() {
             <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" required></div>
             <div class="form-group"><label>Số lượng</label><input type="number" name="stock" required></div>
             <div class="form-group"><label>Mô tả chi tiết</label><input type="text" name="description" required></div>
+            <div class="form-group"><label>Tải ảnh lên</label><input type="file" name="image_upload" accept="image/*"></div>
+        `;
+    } else if (currentTab === 'book') {
+        form.action = "{% url 'product_action' 'book' %}";
+        document.getElementById('add-modal-title').innerText = "📚 Thêm Sách mới";
+        fields.innerHTML = `
+            <div class="form-group"><label>Tựa sách</label><input type="text" name="title" required></div>
+            <div class="form-group"><label>Tác giả</label><input type="text" name="author" required></div>
+            <div class="form-group"><label>Thể loại</label><input type="text" name="category" required></div>
+            <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" required></div>
+            <div class="form-group"><label>Số lượng kho</label><input type="number" name="stock" required></div>
+            <div class="form-group"><label>Mô tả</label><input type="text" name="description" required></div>
             <div class="form-group"><label>Tải ảnh lên</label><input type="file" name="image_upload" accept="image/*"></div>
         `;
     }
@@ -325,6 +375,26 @@ function openEditClothesModal(id, name, brand, category, material, color, size, 
             </div>
         </div>
         <div class="form-group"><label> Giá (VNĐ)</label><input type="number" step="1" name="price" value="${price}" required></div>
+        <div class="form-group"><label>Số lượng</label><input type="number" name="stock" value="${stock}" required></div>
+        <div class="form-group"><label>Mô tả chi tiết</label><input type="text" name="description" value="" placeholder="(Bỏ trống nếu không đổi)"></div>
+        <div class="form-group"><label>Cập nhật ảnh mới</label><input type="file" name="image_upload" accept="image/*"><input type="hidden" name="image_url" value="${image_url === 'None' ? '' : image_url}"></div>
+    `;
+    modal.style.display = 'flex';
+}
+
+function openEditBookModal(id, title, author, category, price, stock, image_url) {
+    const modal = document.getElementById('edit-modal');
+    const form = document.getElementById('edit-product-form');
+    const fields = document.getElementById('edit-form-fields');
+    form.action = "{% url 'product_action' 'book' %}";
+    document.getElementById('edit-product-id').value = id;
+    document.getElementById('edit-modal-title').innerText = "Sửa Sách: " + title;
+    
+    fields.innerHTML = `
+        <div class="form-group"><label>Tựa sách</label><input type="text" name="title" value="${title}" required></div>
+        <div class="form-group"><label>Tác giả</label><input type="text" name="author" value="${author}" required></div>
+        <div class="form-group"><label>Thể loại</label><input type="text" name="category" value="${category}" required></div>
+        <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" value="${price}" required></div>
         <div class="form-group"><label>Số lượng</label><input type="number" name="stock" value="${stock}" required></div>
         <div class="form-group"><label>Mô tả chi tiết</label><input type="text" name="description" value="" placeholder="(Bỏ trống nếu không đổi)"></div>
         <div class="form-group"><label>Cập nhật ảnh mới</label><input type="file" name="image_upload" accept="image/*"><input type="hidden" name="image_url" value="${image_url === 'None' ? '' : image_url}"></div>
