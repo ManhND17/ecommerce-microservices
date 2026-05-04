@@ -2,147 +2,89 @@
 {% load humanize %}
 
 {% block content %}
-<div style="padding: 3rem 5%; max-width: 1200px; margin: 0 auto; animation: fadeInUp 0.6s ease-out;">
-    <div style="margin-bottom: 2rem;">
-        <a href="{% url 'home' %}" style="display: inline-flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-weight: 600; padding: 10px 20px; border-radius: 12px; background: white; border: 1px solid #e2e8f0; transition: all 0.3s ease;" onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.color='#64748b';">
-            ⬅ Trở về Kho Hàng
+<div class="container animate-up" style="padding-top: 1rem;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 0.8rem;">
+        <a href="{% url 'home' %}" style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+            ← Trở về
         </a>
     </div>
 
-    <!-- Product Layout -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; background: white; padding: 3rem; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.04); border: 1px solid #f1f5f9;">
+    <!-- Product Main Grid -->
+    <div class="glass-card" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 2rem; padding: 1.5rem; background: white; align-items: start;">
         
-        <!-- Left: Image Box -->
-        <div style="display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 20px; padding: 2rem; border: 1px solid #f1f5f9; min-height: 400px;">
-            {% if p.image_url %}
-                <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 500px; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.1));">
-            {% else %}
-                <div style="font-size: 8rem; opacity: 0.1;">
-                    {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% elif p.type == 'book' %}📚{% else %}👕{% endif %}
-                </div>
-            {% endif %}
+        <!-- Image Box -->
+        <div style="position: sticky; top: 100px;">
+            <div style="background: #f8fafc; border-radius: 16px; padding: 1rem; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9; height: 320px;">
+                {% if p.image_url %}
+                    <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));">
+                {% else %}
+                    <div style="font-size: 5rem; opacity: 0.1;">📦</div>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- Right: Detail Box -->
+        <!-- Details Box -->
         <div style="display: flex; flex-direction: column;">
-            
-            <!-- Type Badge -->
-            <div style="margin-bottom: 1.5rem;">
-                <span style="background: var(--accent); color: white; padding: 6px 16px; border-radius: 50px; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">
-                    {{ p.type|title }} | {{ p.brand }}
-                </span>
+            <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+                <span class="tag" style="background: var(--primary); color: white; padding: 2px 8px; font-size: 0.65rem;">{{ p.type|upper }}</span>
+                <span class="tag" style="background: #eef2ff; color: var(--primary); padding: 2px 8px; font-size: 0.65rem;">{{ p.brand|default:"TechNova" }}</span>
             </div>
 
-            <h1 style="font-size: 2.5rem; font-weight: 900; color: #0f172a; line-height: 1.2; margin-bottom: 1rem;">
+            <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1.2; margin: 0 0 0.5rem; letter-spacing: -0.5px;">
                 {{ p.name }}
             </h1>
 
-            <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent); margin-bottom: 2.5rem; border-bottom: 2px dashed #e2e8f0; padding-bottom: 1.5rem;">
-                {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 1.2rem; opacity: 0.6;">VNĐ</span>
-                <div style="font-size: 0.9rem; color: #64748b; font-weight: 500; margin-top: 8px;">
-                    Hiện còn {{ p.stock|default:"nhiều" }} sản phẩm trong kho.
+            <div style="font-size: 1.8rem; font-weight: 800; color: #ef4444; margin-bottom: 1rem; display: flex; align-items: baseline; gap: 6px;">
+                {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.9rem; opacity: 0.5;">VNĐ</span>
+            </div>
+
+            <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1.5rem;">
+                {{ p.description|default:"Sản phẩm chất lượng cao từ TechNova."|truncatewords:30 }}
+            </p>
+
+            <!-- Specifications Grid -->
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.8rem; border-left: 3px solid var(--primary); padding-left: 8px;">Thông số</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    {% for key, value in p.specific_attributes.items|slice:":6" %}
+                    <div style="background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #f1f5f9;">
+                        <span style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; font-weight: 700;">{{ key }}</span>
+                        <span style="display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-main);">{{ value }}</span>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Specs Config -->
-            <div style="margin-bottom: 3rem;">
-                <h3 style="font-size: 1.2rem; color: #1e293b; margin-bottom: 1rem; border-left: 4px solid var(--accent); padding-left: 12px;">Đặc điểm nổi bật</h3>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    {% if p.type == 'laptop' %}
-                        <div class="spec-box"><span class="spec-lbl">Vi xử lý:</span> <span class="spec-val">{{ p.core }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">RAM:</span> <span class="spec-val">{{ p.ram }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Ổ cứng (Disk):</span> <span class="spec-val">{{ p.disk }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Màn hình hiển thị:</span> <span class="spec-val">{{ p.screen }}</span></div>
-                    {% elif p.type == 'mobile' %}
-                        <div class="spec-box"><span class="spec-lbl">Màn hình công nghệ:</span> <span class="spec-val">{{ p.screen }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Hệ thống Camera:</span> <span class="spec-val">{{ p.camera }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Dung lượng Pin:</span> <span class="spec-val">{{ p.battery }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Bộ nhớ trong:</span> <span class="spec-val">{{ p.storage }}</span></div>
-                    {% elif p.type == 'book' %}
-                        <div style="grid-column: 1 / -1; line-height: 1.6; color: #475569; font-size: 1.05rem;" class="spec-box">
-                            <strong style="color:#0f172a;">Mô tả nội dung:</strong> {{ p.description }}
-                        </div>
-                        <div class="spec-box"><span class="spec-lbl">Tác giả:</span> <span class="spec-val">{{ p.author }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Thể loại:</span> <span class="spec-val">{{ p.category }}</span></div>
-                    {% else %}
-                        <div style="grid-column: 1 / -1; line-height: 1.6; color: #475569; font-size: 1.05rem;" class="spec-box">
-                            <strong style="color:#0f172a;">Mô tả:</strong> {{ p.description }}
-                        </div>
-                        <div class="spec-box"><span class="spec-lbl">Chất liệu vải:</span> <span class="spec-val">{{ p.material }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Màu sắc hiện có:</span> <span class="spec-val">{{ p.color }}</span></div>
-                        <div class="spec-box"><span class="spec-lbl">Dành cho (Category):</span> <span class="spec-val">{{ p.category }}</span></div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Action Area -->
-            <div style="background: #f8fafc; padding: 2rem; border-radius: 20px; border: 1px solid #e2e8f0; margin-top: auto;">
-                <form action="{% url 'cart' %}" method="post" style="display: flex; gap: 1rem; align-items: flex-end;">
+            <!-- Cart Area -->
+            <div style="background: #f1f5f9; padding: 1.2rem; border-radius: 16px; border: 1px solid #e2e8f0;">
+                <form action="{% url 'cart' %}" method="post" style="display: flex; flex-direction: column; gap: 1rem;">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="product_id" value="{{ p.id }}">
                     <input type="hidden" name="product_type" value="{{ p.type }}">
                     <input type="hidden" name="product_name" value="{{ p.name }}">
                     <input type="hidden" name="price" value="{{ p.price }}">
-                    
-                    {% if p.type == 'clothes' %}
-                    <div style="flex-grow: 1;">
-                        <label style="display: block; font-weight: 700; color: #475569; margin-bottom: 8px; font-size: 0.9rem;">Chọn Size</label>
-                        <select name="selected_size" required style="width: 100%; padding: 16px; border: 2px solid #cbd5e1; border-radius: 12px; background: white; font-size: 1.1rem; font-weight: 700; color: #0f172a; outline: none; cursor: pointer;">
-                            <option value="">Vui lòng chọn Size...</option>
-                            {% for s in p.size %}
-                                <option value="{{ s }}">Kích cỡ: {{ s }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
 
-                    <div style="display: flex; gap: 1rem;" class="{% if p.type == 'clothes' %}action-width-clothes{% else %}action-width-other{% endif %}">
-                        <div style="flex-shrink: 0;">
-                            <label style="display: block; font-weight: 700; color: #475569; margin-bottom: 8px; font-size: 0.9rem;">Số lượng</label>
-                            <input type="number" name="qty" value="1" min="1" max="{{ p.stock|default:10 }}" style="width: 80px; padding: 16px; border: 2px solid #cbd5e1; border-radius: 12px; text-align: center; font-weight: 800; color: #0f172a; outline: none; font-size: 1.1rem;">
+                    <div style="display: flex; gap: 0.8rem; align-items: center;">
+                        <div style="flex-grow: 1;">
+                            <label style="display: block; font-weight: 700; font-size: 0.8rem; margin-bottom: 4px;">Số lượng</label>
+                            <input type="number" name="qty" value="1" min="1" max="{{ p.stock|default:10 }}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 800; text-align: center; font-size: 1rem; outline: none;">
                         </div>
-                        <button type="submit" class="btn btn-primary" style="flex-grow: 1; padding: 16px; font-weight: 800; border-radius: 12px; font-size: 1.1rem; border: none; cursor: pointer; transition: 0.2s; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);">
-                            🛒 Thêm Giỏ Hàng
-                        </button>
+                        <div style="flex-grow: 2;">
+                            <label style="display: block; font-weight: 700; font-size: 0.8rem; margin-bottom: 4px;">Tình trạng</label>
+                            <div style="padding: 8px; border-radius: 8px; background: white; border: 1px solid #cbd5e1; font-weight: 700; font-size: 0.9rem; color: {% if p.stock > 0 %}#059669{% else %}#ef4444{% endif %}; text-align: center;">
+                                {% if p.stock > 0 %}Sẵn hàng ({{ p.stock }}){% else %}Hết hàng{% endif %}
+                            </div>
+                        </div>
                     </div>
+
+                    <button type="submit" class="btn btn-primary" style="padding: 12px; font-size: 1rem; width: 100%;">
+                        🛒 Thêm vào giỏ hàng
+                    </button>
                 </form>
             </div>
-            
         </div>
     </div>
 </div>
-
-<style>
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.spec-box {
-    background: #f8fafc;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-}
-.spec-lbl {
-    display: block;
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-bottom: 4px;
-}
-.spec-val {
-    display: block;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #0f172a;
-}
-@media (max-width: 900px) {
-    div[style*="grid-template-columns: 1fr 1fr"] {
-        grid-template-columns: 1fr !important;
-    }
-}
-.action-width-clothes { width: 50%; }
-.action-width-other { width: 100%; }
-</style>
 {% endblock %}

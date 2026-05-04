@@ -1,0 +1,2 @@
+# Không commit file .env lên git vì chứa thông tin nhạy cảm
+.env

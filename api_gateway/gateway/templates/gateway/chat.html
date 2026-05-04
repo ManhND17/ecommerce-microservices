@@ -1,61 +1,56 @@
 {% extends 'gateway/base.html' %}
 {% block content %}
 <style>
-    .chat-container {
+    /* Tổng quan Layout */
+    .chat-wrapper {
+        display: block; /* Chuyển sang 1 cột */
         max-width: 900px;
-        margin: 0 auto;
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        border-radius: 24px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        margin: 1rem auto;
+        height: calc(100vh - 120px);
+    }
+
+    /* Cột Hội thoại */
+    .chat-main {
         display: flex;
         flex-direction: column;
-        height: 70vh;
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 32px;
+        box-shadow: var(--shadow-xl);
+        overflow: hidden;
     }
+
     .chat-header {
-        padding: 20px 30px;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(29, 78, 216, 0.9));
+        padding: 24px 32px;
+        background: linear-gradient(135deg, var(--primary), #065f46);
         color: white;
-        font-size: 1.5rem;
-        font-weight: 800;
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 15px;
     }
-    .chat-header .badge {
-        font-size: 0.8rem;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-weight: 600;
-    }
+
     .chat-messages {
         flex-grow: 1;
-        padding: 30px;
+        padding: 32px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 20px;
     }
-    .message {
-        display: flex;
-        flex-direction: column;
-        max-width: 80%;
-    }
-    .message.user {
-        align-self: flex-end;
-    }
+
+    /* Bong bóng Chat */
+    .message { display: flex; flex-direction: column; max-width: 85%; }
+    .message.user { align-self: flex-end; }
     .message-bubble {
-        padding: 15px 20px;
+        padding: 16px 24px;
         border-radius: 20px;
-        font-size: 1.1rem;
-        line-height: 1.5;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        font-size: 1.05rem;
+        line-height: 1.6;
+        box-shadow: var(--shadow-sm);
     }
     .message.user .message-bubble {
-        background: var(--accent);
+        background: var(--primary);
         color: white;
         border-bottom-right-radius: 4px;
     }
@@ -65,136 +60,275 @@
         border-bottom-left-radius: 4px;
         border: 1px solid var(--glass-border);
     }
-    .chat-input {
-        padding: 20px 30px;
-        background: rgba(255, 255, 255, 0.9);
-        border-top: 1px solid var(--glass-border);
-        display: flex;
-        gap: 15px;
-    }
-    .chat-input input {
-        flex-grow: 1;
-        padding: 15px 25px;
+
+    /* Cột Thông tin Sản phẩm (Dashboard) */
+    .chat-sidebar {
+        background: var(--glass);
+        backdrop-filter: blur(16px);
         border: 1px solid var(--glass-border);
-        border-radius: 30px;
+        border-radius: 32px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .sidebar-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--glass-border);
+        font-weight: 800;
         font-size: 1.1rem;
-        font-family: 'Outfit';
-        outline: none;
-        background: #f8fafc;
-        transition: 0.3s;
-    }
-    .chat-input input:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-        background: white;
-    }
-    .chat-input button {
-        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-        color: white;
-        border: none;
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        cursor: pointer;
         display: flex;
-        justify-content: center;
         align-items: center;
-        font-size: 1.2rem;
-        transition: 0.3s;
-        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
-    }
-    .chat-input button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
-    }
-    
-    .chat-recommendations {
-        display: flex;
-        flex-wrap: wrap;
         gap: 10px;
-        margin-top: 10px;
+        background: rgba(255, 255, 255, 0.5);
     }
-    .chat-product-card {
-        background: #f8fafc;
-        border: 1px solid var(--glass-border);
-        border-radius: 12px;
+
+    .product-feed {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    /* Thẻ Sản phẩm Mini trong Sidebar */
+    .mini-product-card {
+        background: white;
+        border-radius: 16px;
         padding: 12px;
-        font-size: 0.95rem;
-        width: 200px;
+        border: 1px solid var(--glass-border);
+        transition: 0.3s;
+        cursor: pointer;
     }
-    .chat-product-card h4 { margin: 0 0 5px 0; color: var(--accent); font-size: 1rem;}
-    .chat-product-card .price { font-size: 1.1rem; color: #1e293b; font-weight: 800; margin: 5px 0;}
-    .typing-indicator { font-style: italic; color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; display: none; margin-left: 30px;}
+    .mini-product-card:hover { transform: scale(1.02); border-color: var(--primary); box-shadow: var(--shadow-md); }
+
+    /* Input Area */
+    .chat-footer {
+        padding: 24px 32px;
+        background: white;
+        border-top: 1px solid var(--glass-border);
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .chip {
+        padding: 6px 16px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .chip:hover { border-color: var(--primary); color: var(--primary); background: white; }
+
+    .input-box {
+        display: flex;
+        gap: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 8px 16px;
+    }
+    .input-box input {
+        flex-grow: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    .typing-status {
+        padding: 8px 32px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-style: italic;
+        display: none;
+    }
+
+    /* Sản phẩm Inline */
+    .inline-product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+        width: 100%;
+    }
+
+    .inline-product-card {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 8px;
+        border: 1px solid #e2e8f0;
+        transition: 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .inline-product-card:hover { border-color: var(--primary); background: white; }
+
+    .btn-snack {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 6px;
+        cursor: pointer;
+        border: none;
+        transition: 0.2s;
+    }
+    .btn-snack-primary { background: var(--primary); color: white; }
+    .btn-snack-outline { background: #e2e8f0; color: var(--text-main); }
+    .btn-snack:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .success-toast {
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #059669;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-weight: 700;
+        box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        display: none;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp { from { bottom: 0; opacity: 0; } to { bottom: 100px; opacity: 1; } }
+
+    @media (max-width: 1000px) {
+        .chat-wrapper { max-width: 100%; padding: 0 10px; }
+    }
 </style>
 
-<div class="chat-container">
-    <div class="chat-header">
-        ✨ TechNova AI Assistant <span class="badge">BETA</span>
-    </div>
-    
-    <div class="chat-messages" id="chatbox">
-        <div class="message ai">
-            <div class="message-bubble">
-                Xin chào! 👋 Tôi là trợ lý AI (RAG + RecSys). Tôi đã nạp xong toàn bộ Knowledge Base và có thể giúp bạn tìm được mẫu laptop, điện thoại, hoặc phụ kiện ưng ý nhất. Bạn cần tìm gì hôm nay?
+<div class="container animate-up">
+    <div class="chat-wrapper">
+        <!-- Main Conversation -->
+        <div class="chat-main" style="height: 100%;">
+            <div class="chat-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 1.8rem;">🤖</span>
+                    <div>
+                        <div style="font-weight: 800; font-size: 1.2rem;">TechNova Assistant</div>
+                        <div style="font-size: 0.75rem; opacity: 0.8; display: flex; align-items: center; gap: 4px;">
+                            <span style="width: 8px; height: 8px; background: #4ade80; border-radius: 50%;"></span> AI trực tuyến
+                        </div>
+                    </div>
+                </div>
+                <span class="tag" style="background: rgba(255,255,255,0.2); color: white;">v2.0 Premium</span>
+            </div>
+
+            <div class="chat-messages" id="chatbox">
+                <div class="message ai">
+                    <div class="message-bubble">
+                        Xin chào! 👋 Tôi là trợ lý mua sắm AI. Tôi có thể tư vấn thông số kỹ thuật, so sánh giá và tìm sản phẩm nhanh nhất cho bạn. Bạn đang cần tìm mẫu máy nào?
+                    </div>
+                </div>
+            </div>
+
+            <div class="typing-status" id="typing">AI đang tìm kiếm sản phẩm phù hợp...</div>
+
+            <div class="chat-footer">
+                <div class="quick-actions">
+                    <div class="chip" onclick="quickQuery('Tìm laptop gaming dưới 20 triệu')">🔥 Laptop Gaming < 20tr</div>
+                    <div class="chip" onclick="quickQuery('Điện thoại chụp ảnh đẹp')">📸 Camera Phone</div>
+                    <div class="chip" onclick="quickQuery('Gợi ý cho tôi các phụ kiện hot')">⚡ Phụ kiện Hot</div>
+                    <div class="chip" onclick="quickQuery('So sánh MacBook và ThinkPad')">💻 So sánh</div>
+                </div>
+                <div class="input-box">
+                    <input type="text" id="userInput" placeholder="Nhập yêu cầu của bạn tại đây..." autocomplete="off">
+                    <button class="btn btn-primary" id="sendBtn" style="padding: 10px 20px;">Gửi</button>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="typing-indicator" id="typing">AI đang chạy thuật toán Recommend & Search...</div>
-    
-    <div class="chat-input" id="chat-form">
-        <input type="text" id="userInput" placeholder="Nhập yêu cầu của bạn (ví dụ: 'laptop gaming', 'điện thoại giá rẻ')..." autocomplete="off">
-        <button id="sendBtn">▶</button>
-    </div>
 </div>
+
+<div class="success-toast" id="cartToast">✨ Đã thêm vào giỏ hàng thành công!</div>
 
 <script>
     const chatbox = document.getElementById('chatbox');
+    const sidebarFeed = document.getElementById('sidebar-feed');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     const typing = document.getElementById('typing');
 
-    function appendMessage(text, sender, recommendations = null) {
+    function quickQuery(text) {
+        userInput.value = text;
+        sendMessage();
+    }
+
+    function appendMessage(text, sender, products = []) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${sender}`;
         
-        let html = `<div class="message-bubble">${text}</div>`;
-        
-        if (recommendations && recommendations.length > 0) {
-            let cardsHtml = '<div class="chat-recommendations">';
-            recommendations.forEach(p => {
-                let name = p.name || `Sản phẩm ${p.id}`;
-                let price = p.price ? p.price + 'đ' : 'Liên hệ';
-                cardsHtml += `
-                    <div class="chat-product-card">
-                        <h4>${name}</h4>
-                        <div class="price">${price}</div>
-                        <span class="tag">${p.category || 'Nổi bật'}</span>
-                    </div>
-                `;
-            });
-            cardsHtml += '</div>';
-            html += cardsHtml;
+        let productHtml = '';
+        if (products && products.length > 0) {
+            const top3 = products.slice(0, 3);
+            productHtml = `
+                <div class="inline-product-grid">
+                    ${top3.map(p => `
+                        <div class="inline-product-card">
+                            <div style="height: 80px; display: flex; align-items: center; justify-content: center; background: white; border-radius: 8px;">
+                                <img src="${p.image_url || 'https://placehold.co/100x100?text=📦'}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+                            </div>
+                            <div style="font-weight: 700; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
+                            <div style="color: #ef4444; font-weight: 800; font-size: 0.85rem;">${Number(p.price).toLocaleString()}đ</div>
+                            <div style="display: flex; gap: 4px; margin-top: 4px;">
+                                <button class="btn-snack btn-snack-outline" style="flex: 1" onclick="window.open('/product/${p.type}/${p.id}/', '_blank')">Chi tiết</button>
+                                <button class="btn-snack btn-snack-primary" style="flex: 1" onclick="addToCartAJAX('${p.id}', '${p.type}', '${p.name.replace(/'/g, "\\'")}', '${p.price}')">🛒 Mua</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
         }
-        
-        msgDiv.innerHTML = html;
+
+        msgDiv.innerHTML = `
+            <div class="message-bubble">
+                ${text}
+                ${productHtml}
+            </div>
+        `;
         chatbox.appendChild(msgDiv);
         chatbox.scrollTop = chatbox.scrollHeight;
     }
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
+    async function addToCartAJAX(id, type, name, price) {
+        const formData = new FormData();
+        formData.append('action', 'add');
+        formData.append('product_id', id);
+        formData.append('product_type', type);
+        formData.append('product_name', name);
+        formData.append('price', price);
+        formData.append('qty', 1);
+
+        try {
+            const response = await fetch('/cart/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            });
+
+            if (response.ok) {
+                const toast = document.getElementById('cartToast');
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2500);
             }
-        }
-        return cookieValue;
+        } catch (e) { console.error('Lỗi thêm giỏ hàng:', e); }
     }
 
     async function sendMessage() {
@@ -204,14 +338,13 @@
         appendMessage(text, 'user');
         userInput.value = '';
         typing.style.display = 'block';
-        chatbox.scrollTop = chatbox.scrollHeight;
 
         try {
             const response = await fetch('/api/chat/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': '{{ csrf_token }}'
                 },
                 body: JSON.stringify({ query: text })
             });
@@ -221,10 +354,10 @@
             if (response.ok) {
                 appendMessage(data.response, 'ai', data.recommendations);
             } else {
-                appendMessage('Xin lỗi, tôi đang xử lý lỗi backend. Lỗi: ' + (data.error || JSON.stringify(data)), 'ai');
+                appendMessage('Oops! Dịch vụ AI đang bảo trì. Vui lòng thử lại sau.', 'ai');
             }
         } catch (e) {
-            appendMessage('Lỗi kết nối đến TechNova AI. Hãy đảm bảo ai-service đang chạy trên cổng 8006.', 'ai');
+            appendMessage('Lỗi kết nối. Hãy đảm bảo bạn đã chạy Docker Compose.', 'ai');
         } finally {
             typing.style.display = 'none';
         }

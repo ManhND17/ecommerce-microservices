@@ -14,6 +14,6 @@ def login_view(request):
     password = request.data.get('password')
     try:
         staff = Staff.objects.get(username=username, password=password)
-        return Response({'id': staff.id, 'role': staff.role}, status=status.HTTP_200_OK)
+        return Response({'id': staff.id, 'username': staff.username, 'role': staff.role}, status=status.HTTP_200_OK)
     except Staff.DoesNotExist:
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)

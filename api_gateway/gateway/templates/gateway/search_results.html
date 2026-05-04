@@ -1,70 +1,109 @@
 {% extends 'gateway/base.html' %}
+{% load humanize %}
 {% block content %}
-<h1>Search Results for <span style="color: var(--accent);">"{{ query }}"</span></h1>
-<div class="grid">
-    {% for p in products %}
-    <div class="card" style="padding: 1.5rem; border-radius: 20px; transition: 0.3s; background: white;">
-        <span class="tag" style="background: var(--accent); color: white; border-radius: 8px; font-weight: 700;">{{ p.type|title }} | {{ p.brand }}</span>
+<div class="container animate-up" style="padding-top: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin-bottom: 2rem;">
+        Kết quả tìm kiếm cho: <span style="color: var(--primary);">"{{ query }}"</span>
+    </h1>
+
+    {% if ai_recommendations %}
+    <div class="ai-section animate-up" style="margin-bottom: 3rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); padding: 2rem; border-radius: 24px; border: 1px solid rgba(16, 185, 129, 0.2);">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
+            <span style="font-size: 1.5rem;">✨</span>
+            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--primary); margin: 0;">AI Đề xuất riêng cho bạn</h2>
+        </div>
+        <div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.2rem;">
+            {% for p in ai_recommendations %}
+            <div class="glass-card product-card ai-search-item" style="padding: 0.8rem; background: white; border-radius: 18px; cursor: pointer; flex-direction: column; {% if forloop.counter0 >= 5 %}display: none;{% else %}display: flex;{% endif %}" onclick="window.location='{% url 'product_detail' p.type p.id %}'">
+                 <div style="height: 140px; border-radius: 12px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 0.8rem;">
+                    {% if p.image_url %}
+                        <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+                    {% else %}
+                        <div style="font-size: 2.5rem; opacity: 0.1;">📦</div>
+                    {% endif %}
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0 0 0.5rem; color: var(--text-main); height: 2.4rem; overflow: hidden;">{{ p.name }}</h4>
+                <div style="color: #ef4444; font-weight: 800; font-size: 1.1rem;">
+                    {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.7rem;">đ</span>
+                </div>
+                <div style="margin-top: 8px; font-size: 0.7rem; color: var(--primary); font-weight: 800; text-transform: uppercase;">
+                    🎯 Match Score: {{ p.score|default:"90" }}%
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         
-        <!-- Link Wrapping Image & Title -->
-        <a href="{% url 'product_detail' p.type p.id %}" style="text-decoration: none; color: inherit; display: block;">
+        {% if ai_recommendations|length > 5 %}
+        <div style="text-align: center; margin-top: 2rem;">
+            <button onclick="document.querySelectorAll('.ai-search-item').forEach(el=>{el.style.display='flex'}); this.style.display='none';" class="btn" style="background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 10px 24px; font-weight: 700; border-radius: 20px; transition: 0.3s;" onmouseover="this.style.background='var(--primary)'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='var(--primary)'">
+                Xem thêm sản phẩm gợi ý ↓
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
+        {% for p in products %}
+        <div class="glass-card product-card" style="padding: 0.8rem; cursor: pointer; display: flex; flex-direction: column;" onclick="window.location='{% url 'product_detail' p.type p.id %}'">
             <!-- Product Image -->
-            <div style="height: 150px; display: flex; align-items: center; justify-content: center; margin: 1rem 0; border-radius: 12px; overflow: hidden; background: #f8fafc;">
+            <div style="height: 180px; border-radius: 12px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; border: 1px solid #f1f5f9;">
                 {% if p.image_url %}
-                    <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
                 {% else %}
-                    <div style="font-size: 3rem; opacity: 0.2;">
-                        {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% elif p.type == 'book' %}📚{% else %}👕{% endif %}
+                    <div style="font-size: 3rem; opacity: 0.1;">
+                        {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% elif p.type == 'book' %}📚{% else %}📦{% endif %}
                     </div>
                 {% endif %}
             </div>
+            
+            <div style="padding: 0 0.5rem 0.5rem;">
+                <!-- Tags -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span class="tag" style="background: #eef2ff; color: var(--primary); font-size: 0.7rem;">{{ p.brand|default:"TechNova" }}</span>
+                    {% if p.stock and p.stock < 5 %}<span class="tag" style="background: #fef2f2; color: #ef4444; font-size: 0.7rem;">Sắp hết hàng</span>{% endif %}
+                </div>
+                
+                <!-- Title -->
+                <h3 style="font-size: 1.15rem; margin: 0 0 0.3rem; font-weight: 700; color: var(--text-main); line-height: 1.3; height: 3rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                    {{ p.name }}
+                </h3>
 
-            <h3 style="margin-top: 0.5rem; min-height: 3rem;">{{ p.name }}</h3>
-        </a>
-        
-        <div style="font-size: 0.9em; color: var(--text-muted); flex-grow: 1; line-height: 1.6;">
-            {% if p.type == 'laptop' %}
-                <strong>Core:</strong> {{ p.core }} | <strong>RAM:</strong> {{ p.ram }}<br>
-                <strong>Disk:</strong> {{ p.disk }} | <strong>Screen:</strong> {{ p.screen }}
-            {% elif p.type == 'mobile' %}
-                <strong>Screen:</strong> {{ p.screen }} | <strong>Camera:</strong> {{ p.camera }}<br>
-                <strong>RAM:</strong> {{ p.ram }} | <strong>Storage:</strong> {{ p.storage }}<br>
-                <strong>Battery:</strong> {{ p.battery }}
-            {% elif p.type == 'book' %}
-                <strong>Tác giả:</strong> {{ p.author }} | <strong>Thể loại:</strong> {{ p.category }}<br>
-                <strong>Kho:</strong> {{ p.stock }}
-            {% else %}
-                <strong>Danh mục:</strong> {{ p.category }} | <strong>Màu sắc:</strong> {{ p.color }}<br>
-                <strong>Chất liệu:</strong> {{ p.material }} | <strong>Size:</strong> {{ p.size|join:", " }}
-            {% endif %}
+                <!-- Price -->
+                <div style="font-size: 1.4rem; font-weight: 800; color: #ef4444; margin-bottom: 1rem;">
+                    {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" style="flex-grow: 1; padding: 10px; font-size: 0.9rem;">Xem chi tiết</button>
+                    <form action="{% url 'cart' %}" method="post" onclick="event.stopPropagation();">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="product_id" value="{{ p.id }}">
+                        <input type="hidden" name="product_type" value="{{ p.type }}">
+                        <input type="hidden" name="product_name" value="{{ p.name }}">
+                        <input type="hidden" name="price" value="{{ p.price }}">
+                        <input type="hidden" name="qty" value="1">
+                        <button type="submit" style="background: #f1f5f9; padding: 10px; border-radius: 12px; border: none; color: var(--primary); width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;">
+                            🛒
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
-        
-        <div class="price">${{ p.price }}</div>
-        
-        <form action="{% url 'cart' %}" method="post" style="display: flex; gap: 10px; margin-top: 10px;">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add">
-            <input type="hidden" name="product_id" value="{{ p.id }}">
-            <input type="hidden" name="product_type" value="{{ p.type }}">
-            <input type="hidden" name="product_name" value="{{ p.name }}">
-            <input type="hidden" name="price" value="{{ p.price }}">
-            {% if p.type == 'clothes' %}
-            <select name="selected_size" required style="width: 75px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white; font-size: 0.9rem;">
-                <option value="">Size</option>
-                {% for s in p.size %}
-                <option value="{{ s }}">{{ s }}</option>
-                {% endfor %}
-            </select>
-            {% endif %}
-            <input type="number" name="qty" value="1" min="1" max="{{ p.stock|default:10 }}" style="width: 70px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white; font-size: 1rem;">
-            <button type="submit" class="btn btn-primary" style="flex-grow: 1;">Add to Cart</button>
-        </form>
+        {% empty %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 5rem 0;">
+            <div style="font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.5;">🔍</div>
+            <h2 style="color: var(--text-muted); font-weight: 600;">Không tìm thấy sản phẩm nào phù hợp.</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Thử tìm kiếm với từ khóa khác hoặc quay lại trang chủ.</p>
+            <a href="{% url 'home' %}" class="btn btn-primary" style="padding: 12px 32px;">Quay lại trang chủ</a>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--surface-color); border-radius: 16px; border: 1px solid var(--glass-border);">
-        <h2 style="color: var(--text-muted);">No results found.</h2>
-        <a href="{% url 'home' %}" class="btn btn-primary" style="margin-top: 1rem;">Go Back Home</a>
-    </div>
-    {% endfor %}
 </div>
+
+<style>
+.product-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-xl); border-color: var(--primary); }
+</style>
 {% endblock %}

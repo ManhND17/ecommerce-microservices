@@ -1,0 +1,165 @@
+{% extends 'gateway/base.html' %}
+{% block content %}
+<style>
+    @keyframes popIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .success-icon { animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+    .fade-in { animation: slideUp 0.5s ease-out forwards; }
+    .info-row { display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.92rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--text-muted); }
+    .info-val { font-weight: 700; text-align: right; }
+    .section-box { background: #f8fafc; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.2rem; }
+    .section-box h3 { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 1rem; }
+    .item-success-row { display:flex; justify-content:space-between; align-items:center; padding: 10px 0; gap: 1rem; }
+    .item-success-row:not(:last-child) { border-bottom: 1px dashed #e2e8f0; }
+    .status-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; }
+</style>
+
+<div class="container animate-up" style="max-width: 760px; padding-top: 2.5rem; padding-bottom: 5rem;">
+    <div id="success-view">
+
+        <!-- ✅ Icon + Title -->
+        <div style="text-align: center; margin-bottom: 2.5rem;" class="fade-in">
+            <div class="success-icon" style="width: 90px; height: 90px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 20px 50px rgba(5,150,105,0.3);">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0 0 0.5rem;">Đặt hàng thành công! 🎉</h1>
+            <p style="color: var(--text-muted); margin: 0; font-size: 1rem;">Cảm ơn bạn đã mua sắm tại <strong>TechNova Store</strong></p>
+        </div>
+
+        <!-- Order Card -->
+        <div class="glass-card fade-in" style="padding: 2.5rem;">
+
+            <!-- Order Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Mã đơn hàng</div>
+                    <div id="order-id-display" style="font-size: 1.6rem; font-weight: 800; color: var(--primary);">#——</div>
+                </div>
+                <span id="status-badge" class="status-badge" style="background: #fef3c7; color: #d97706;">⏳ Đang xử lý</span>
+            </div>
+
+            <!-- Section 1: Products -->
+            <div class="section-box">
+                <h3>📦 Sản phẩm đặt mua</h3>
+                <div id="order-items-list">
+                    <p style="color: var(--text-muted); text-align: center; padding: 1rem;">Đang tải...</p>
+                </div>
+                <div style="border-top: 2px dashed #e2e8f0; margin-top: 1rem; padding-top: 1rem; display: flex; justify-content: space-between; font-size: 1.05rem; font-weight: 800; color: var(--primary);">
+                    <span>Tổng cộng</span>
+                    <span id="order-total">—</span>
+                </div>
+            </div>
+
+            <!-- Section 2: Shipping Info -->
+            <div class="section-box">
+                <h3>📍 Thông tin giao hàng</h3>
+                <div class="info-row"><span class="info-label">Người nhận</span><span class="info-val" id="sh-name">—</span></div>
+                <div class="info-row"><span class="info-label">Số điện thoại</span><span class="info-val" id="sh-phone">—</span></div>
+                <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-val" id="sh-address">—</span></div>
+                <div class="info-row" id="sh-note-row" style="display:none;"><span class="info-label">Ghi chú</span><span class="info-val" id="sh-note">—</span></div>
+            </div>
+
+            <!-- Section 3: Payment Info -->
+            <div class="section-box" style="margin-bottom: 0;">
+                <h3>💳 Thông tin thanh toán</h3>
+                <div class="info-row"><span class="info-label">Phương thức</span><span class="info-val" id="pay-method">—</span></div>
+                <div class="info-row"><span class="info-label">Trạng thái</span><span id="pay-status" class="info-val">—</span></div>
+                <div class="info-row" id="pay-note-row" style="display:none;">
+                    <span class="info-label">Lưu ý</span>
+                    <span class="info-val" id="pay-note" style="color: #d97706;"></span>
+                </div>
+                <div class="info-row" style="border-bottom: none; padding-top: 14px;">
+                    <span style="font-weight: 700;">Tổng thanh toán</span>
+                    <span id="pay-total" style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="fade-in" style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+            <a href="{% url 'home' %}" class="btn btn-primary" style="flex: 1; min-width: 160px; padding: 16px; font-size: 1rem;">🛒 Tiếp tục mua sắm</a>
+            <a href="{% url 'cart' %}" style="flex: 1; min-width: 160px; display:inline-flex; align-items:center; justify-content:center; padding: 16px; border-radius: 12px; border: 2px solid #e2e8f0; font-weight: 700; text-decoration: none; color: var(--text-main); font-size: 1rem; font-family: 'Outfit', sans-serif;">🛍️ Xem giỏ hàng</a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function fmtPrice(p) {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p);
+}
+
+function populate() {
+    const raw = sessionStorage.getItem('last_order');
+    if (!raw) {
+        // Fallback: lấy từ query string (dành cho VNPay redirect)
+        const params = new URLSearchParams(window.location.search);
+        document.getElementById('order-id-display').textContent = '#' + (params.get('order_id') || '—');
+        const method = params.get('method') || 'vnpay';
+        document.getElementById('pay-method').textContent = method === 'vnpay' ? '🏦 VNPay' : '💵 COD';
+        document.getElementById('pay-status').textContent = method === 'vnpay' ? '✅ Đã thanh toán' : '⏳ Thanh toán khi nhận';
+        document.getElementById('order-items-list').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem;">Không có dữ liệu sản phẩm</p>';
+        return;
+    }
+
+    const d = JSON.parse(raw);
+
+    // Order ID & Status
+    document.getElementById('order-id-display').textContent = '#' + (d.order_id || '—');
+
+    // Items
+    if (d.items && d.items.length) {
+        let html = '';
+        d.items.forEach(it => {
+            const sub = it.quantity * it.unit_price;
+            html += `<div class="item-success-row">
+                <div style="flex:1;">
+                    <div style="font-weight:700; font-size:0.92rem;">${it.name || 'Sản phẩm'}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">x${it.quantity} × ${fmtPrice(it.unit_price)}</div>
+                </div>
+                <div style="font-weight:800; color:var(--text-main); white-space:nowrap;">${fmtPrice(sub)}</div>
+            </div>`;
+        });
+        document.getElementById('order-items-list').innerHTML = html;
+    }
+    document.getElementById('order-total').textContent = fmtPrice(d.total || 0);
+
+    // Shipping
+    const s = d.shipping || {};
+    document.getElementById('sh-name').textContent    = s.name || '—';
+    document.getElementById('sh-phone').textContent   = s.phone || '—';
+    document.getElementById('sh-address').textContent = [s.address, s.district, s.city].filter(Boolean).join(', ') || '—';
+    if (s.note) {
+        document.getElementById('sh-note').textContent = s.note;
+        document.getElementById('sh-note-row').style.display = 'flex';
+    }
+
+    // Payment
+    const method = d.payment_method || 'cod';
+    if (method === 'vnpay') {
+        document.getElementById('pay-method').textContent = '🏦 Thanh toán VNPay';
+        document.getElementById('pay-status').textContent = '✅ Đã thanh toán thành công';
+        document.getElementById('pay-status').style.color = '#059669';
+        document.getElementById('status-badge').textContent = '✅ Đã thanh toán';
+        document.getElementById('status-badge').style.background = '#d1fae5';
+        document.getElementById('status-badge').style.color = '#059669';
+    } else {
+        document.getElementById('pay-method').textContent = '💵 Thanh toán khi nhận hàng (COD)';
+        document.getElementById('pay-status').textContent = '⏳ Chưa thanh toán';
+        document.getElementById('pay-status').style.color = '#d97706';
+        document.getElementById('pay-note').textContent = 'Vui lòng chuẩn bị tiền mặt khi shipper đến giao hàng.';
+        document.getElementById('pay-note-row').style.display = 'flex';
+    }
+    document.getElementById('pay-total').textContent = fmtPrice(d.total || 0);
+
+    // Dọn session sau khi hiển thị xong
+    sessionStorage.removeItem('last_order');
+}
+
+populate();
+</script>
+{% endblock %}

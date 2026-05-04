@@ -1,405 +1,221 @@
 {% extends 'gateway/base.html' %}
 {% load humanize %}
 {% block content %}
-<div style="padding: 2rem 5%;">
+<div class="container animate-up">
     <!-- Header Section -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #ffffff; padding: 1rem 2rem; border-radius: 12px; border: 1px solid var(--glass-border); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-        <div style="display: flex; align-items: center; gap: 2rem;">
-            <div style="display: flex; background: #f1f5f9; padding: 4px; border-radius: 10px;">
-                <button onclick="switchTab('laptop')" id="tab-laptop" class="tab-btn active" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">💻 Laptop</button>
-                <button onclick="switchTab('mobile')" id="tab-mobile" class="tab-btn" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">📱 Điện thoại</button>
-                <button onclick="switchTab('clothes')" id="tab-clothes" class="tab-btn" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">👕 Quần áo</button>
-                <button onclick="switchTab('book')" id="tab-book" class="tab-btn" style="padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s;">📚 Sách</button>
-            </div>
-        </div>
-        <div style="display: flex; gap: 1rem;">
-            <button onclick="openAddModal()" class="btn btn-primary" style="padding: 10px 25px;">+ Thêm Sản Phẩm Mới</button>
-        </div>
+    <div style="margin-bottom: 3rem;">
+        <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Bảng Quản Trị Kho Hàng</h1>
+        <p style="color: var(--text-muted);">Quản lý danh sách sản phẩm, tồn kho và thông tin chi tiết các mặt hàng.</p>
     </div>
 
-    <!-- Product Table -->
-    <div style="background: #ffffff; border-radius: 16px; border: 1px solid var(--glass-border); overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-                <tr style="background: #f8fafc; border-bottom: 1px solid var(--glass-border);">
-                    <th style="padding: 1.2rem;">Hình ảnh</th>
-                    <th style="padding: 1.2rem;">Sản phẩm</th>
-                    <th style="padding: 1.2rem;">Thương hiệu</th>
-                    <th style="padding: 1.2rem;">Giá (VNĐ)</th>
-                    <th style="padding: 1.2rem;">Tồn kho</th>
-                    <th style="padding: 1.2rem;">Thao tác</th>
-                </tr>
-            </thead>
-            <!-- Laptop Table Body -->
-            <tbody id="laptop-body">
-                {% for l in laptops %}
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 1.2rem;">
-                        <div style="width: 60px; height: 60px; background: #f8fafc; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9;">
-                            {% if l.image_url %}
-                                <img src="{{ l.image_url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                            {% else %}
-                                <span style="font-size: 1.5rem; opacity: 0.3;">💻</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="font-weight: 700; color: #1e293b;">{{ l.name }}</div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">{{ l.core }} | {{ l.ram }} | {{ l.disk }}</div>
-                    </td>
-                    <td style="padding: 1.2rem;"><span class="tag" style="background: #eff6ff; color: #3b82f6;">{{ l.brand }}</span></td>
-                    <td style="padding: 1.2rem; font-weight: 800; color: var(--accent);">{{ l.price|floatformat:"0"|intcomma }}</td>
-                    <td style="padding: 1.2rem;">
-                        <span style="font-weight: 600;" class="{% if l.stock < 5 %}stock-low{% endif %}">{{ l.stock }}</span>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="openEditLaptopModal('{{ l.id }}', '{{ l.name }}', '{{ l.brand }}', '{{ l.core }}', '{{ l.ram }}', '{{ l.disk }}', '{{ l.screen }}', '{{ l.price }}', '{{ l.stock }}', '{{ l.image_url }}')" class="btn" style="background: #fbbf24; color: white; padding: 6px 12px; font-size: 0.85rem;">Sửa</button>
-                            <form action="{% url 'product_action' 'laptop' %}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa không?')">
-                                {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ l.id }}">
-                                <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Xóa</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    <!-- Stats Summary (Optional/Premium look) -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 3rem;">
+        {% for cat in catalogs %}
+        <div class="glass-card" style="padding: 1.5rem; background: white; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(5, 150, 105, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                {% if cat.slug == 'laptop' %}💻{% elif cat.slug == 'mobile' %}📱{% elif cat.slug == 'books' %}📚{% else %}📦{% endif %}
+            </div>
+            <div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">{{ cat.name }}</div>
+                <div style="font-size: 1.25rem; font-weight: 800;">{% for slug, products in grouped_products.items %}{% if slug == cat.slug %}{{ products|length }}{% endif %}{% endfor %} SP</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 
-            <!-- Book Table Body -->
-            <tbody id="book-body" style="display: none;">
-                {% for b in books %}
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 1.2rem;">
-                        <div style="width: 60px; height: 60px; background: #f8fafc; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9;">
-                            {% if b.image_url %}
-                                <img src="{{ b.image_url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                            {% else %}
-                                <span style="font-size: 1.5rem; opacity: 0.3;">📚</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="font-weight: 700; color: #1e293b;">{{ b.title }}</div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">{{ b.author }} | {{ b.category }}</div>
-                    </td>
-                    <td style="padding: 1.2rem;"><span class="tag" style="background: #f0fdf4; color: #16a34a;">NXB</span></td>
-                    <td style="padding: 1.2rem; font-weight: 800; color: var(--accent);">{{ b.price|floatformat:"0"|intcomma }}</td>
-                    <td style="padding: 1.2rem;">
-                        <span style="font-weight: 600;" class="{% if b.stock < 5 %}stock-low{% endif %}">{{ b.stock }}</span>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="openEditBookModal('{{ b.id }}', '{{ b.title|escapejs }}', '{{ b.author|escapejs }}', '{{ b.category|escapejs }}', '{{ b.price }}', '{{ b.stock }}', '{{ b.image_url|escapejs }}')" class="btn" style="background: #fbbf24; color: white; padding: 6px 12px; font-size: 0.85rem;">Sửa</button>
-                            <form action="{% url 'product_action' 'book' %}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa không?')">
-                                {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ b.id }}">
-                                <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Xóa</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
+    <!-- Table Section -->
+    <div class="glass-card" style="background: white; overflow: hidden; padding: 0;">
+        <!-- Tabs & Actions Bar -->
+        <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+            <div style="display: flex; gap: 8px; background: #f1f5f9; padding: 4px; border-radius: 12px;">
+                {% for catalog in catalogs %}
+                <button onclick="switchTab('{{ catalog.slug }}')" id="tab-{{ catalog.slug }}" class="tab-btn {% if forloop.first %}active{% endif %}" style="padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.9rem;">
+                    {{ catalog.name }}
+                </button>
                 {% endfor %}
-            </tbody>
+            </div>
+            <button onclick="openAddModal()" class="btn btn-primary">
+                + Thêm sản phẩm mới
+            </button>
+        </div>
 
-            <!-- Mobile Table Body -->
-            <tbody id="mobile-body" style="display: none;">
-                {% for m in mobiles %}
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 1.2rem;">
-                        <div style="width: 60px; height: 60px; background: #f8fafc; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9;">
-                            {% if m.image_url %}
-                                <img src="{{ m.image_url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                            {% else %}
-                                <span style="font-size: 1.5rem; opacity: 0.3;">📱</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="font-weight: 700; color: #1e293b;">{{ m.name }}</div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">{{ m.screen }} | {{ m.camera }} | {{ m.battery }}</div>
-                    </td>
-                    <td style="padding: 1.2rem;"><span class="tag" style="background: #fef2f2; color: #ef4444;">{{ m.brand }}</span></td>
-                    <td style="padding: 1.2rem; font-weight: 800; color: var(--accent);">{{ m.price|floatformat:"0"|intcomma }}</td>
-                    <td style="padding: 1.2rem;">
-                        <span style="font-weight: 600;" class="{% if m.stock < 5 %}stock-low{% endif %}">{{ m.stock }}</span>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="openEditMobileModal('{{ m.id }}', '{{ m.name }}', '{{ m.brand }}', '{{ m.screen }}', '{{ m.camera }}', '{{ m.ram }}', '{{ m.storage }}', '{{ m.battery }}', '{{ m.price }}', '{{ m.stock }}', '{{ m.image_url }}')" class="btn" style="background: #fbbf24; color: white; padding: 6px 12px; font-size: 0.85rem;">Sửa</button>
-                            <form action="{% url 'product_action' 'mobile' %}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa không?')">
-                                {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ m.id }}">
-                                <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Xóa</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
+        <!-- Table -->
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: #ffffff; border-bottom: 2px solid #f1f5f9;">
+                        <th style="padding: 1.5rem 2rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Sản phẩm</th>
+                        <th style="padding: 1.5rem 2rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Phân loại</th>
+                        <th style="padding: 1.5rem 2rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Giá bán</th>
+                        <th style="padding: 1.5rem 2rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Kho</th>
+                        <th style="padding: 1.5rem 2rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Hành động</th>
+                    </tr>
+                </thead>
+                {% for slug, products in grouped_products.items %}
+                <tbody id="{{ slug }}-body" class="category-tbody" style="{% if not forloop.first %}display: none;{% endif %}">
+                    {% for p in products %}
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;">
+                        <td style="padding: 1.5rem 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="width: 50px; height: 50px; background: #f8fafc; border-radius: 10px; overflow: hidden; border: 1px solid #f1f5f9; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                                    {% if p.image_url %}
+                                        <img src="{{ p.image_url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                    {% else %}
+                                        <span style="font-size: 1.2rem; opacity: 0.2;">📦</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div style="font-weight: 700; color: var(--text-main); font-size: 1rem;">{{ p.name }}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">ID: #{{ p.id }} | {{ p.brand|default:"N/A" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 1.5rem 2rem;">
+                            <span class="tag" style="background: #eef2ff; color: var(--primary);">{{ p.type }}</span>
+                        </td>
+                        <td style="padding: 1.5rem 2rem; font-weight: 800; color: var(--primary);">
+                            {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.75rem; opacity: 0.6;">VNĐ</span>
+                        </td>
+                        <td style="padding: 1.5rem 2rem;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if p.stock > 10 %}#10b981{% elif p.stock > 0 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+                                <span style="font-weight: 700; color: var(--text-main);">{{ p.stock }}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 1.5rem 2rem;">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="openEditModal('{{ p.id }}', '{{ p.type }}')" class="btn" style="padding: 8px 12px; background: #f1f5f9; color: var(--text-main); font-size: 0.85rem;">Sửa</button>
+                                <form action="{% url 'product_action' p.type %}" method="post" onsubmit="return confirm('Xác nhận xóa sản phẩm này?')">
+                                    {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ p.id }}">
+                                    <button type="submit" class="btn" style="padding: 8px 12px; background: #fef2f2; color: #ef4444; font-size: 0.85rem;">Xóa</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="padding: 4rem; text-align: center; color: var(--text-muted);">Không có sản phẩm nào trong danh mục này.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
                 {% endfor %}
-            </tbody>
-
-            <!-- Clothes Table Body -->
-            <tbody id="clothes-body" style="display: none;">
-                {% for c in clothes %}
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 1.2rem;">
-                        <div style="width: 60px; height: 60px; background: #f8fafc; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #f1f5f9;">
-                            {% if c.image_url %}
-                                <img src="{{ c.image_url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                            {% else %}
-                                <span style="font-size: 1.5rem; opacity: 0.3;">👕</span>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="font-weight: 700; color: #1e293b;">{{ c.name }}</div>
-                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">{{ c.category }} | {{ c.material }} | {{ c.color }}</div>
-                    </td>
-                    <td style="padding: 1.2rem;"><span class="tag" style="background: #fdf4ff; color: #c026d3;">{{ c.brand }}</span></td>
-                    <td style="padding: 1.2rem; font-weight: 800; color: var(--accent);">{{ c.price|floatformat:"0"|intcomma }}</td>
-                    <td style="padding: 1.2rem;">
-                        <span style="font-weight: 600;" class="{% if c.stock < 5 %}stock-low{% endif %}">{{ c.stock }}</span>
-                    </td>
-                    <td style="padding: 1.2rem;">
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="openEditClothesModal('{{ c.id }}', '{{ c.name|escapejs }}', '{{ c.brand|escapejs }}', '{{ c.category|escapejs }}', '{{ c.material|escapejs }}', '{{ c.color|escapejs }}', '{{ c.size|escapejs }}', '{{ c.price }}', '{{ c.stock }}', '{{ c.image_url|escapejs }}')" class="btn" style="background: #fbbf24; color: white; padding: 6px 12px; font-size: 0.85rem;">Sửa</button>
-                            <form action="{% url 'product_action' 'clothes' %}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa không?')">
-                                {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="product_id" value="{{ c.id }}">
-                                <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Xóa</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Modal Thêm Sản Phẩm Mới (Chung) -->
-<div id="add-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-    <div style="background: #ffffff; padding: 2.5rem; border-radius: 16px; width: 500px; max-height: 90vh; overflow-y: auto;">
-        <h2 id="add-modal-title">Thêm sản phẩm mới</h2>
-        <form id="add-product-form" method="post" enctype="multipart/form-data">
+<!-- Modal Form -->
+<div id="product-modal" style="display:none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="glass-card animate-up" style="background: white; padding: 2.5rem; width: 600px; max-height: 90vh; overflow-y: auto;">
+        <h2 id="modal-title" style="font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 2rem;">Thêm sản phẩm</h2>
+        
+        <form id="product-form" method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <input type="hidden" name="action" value="add">
-            <div id="add-form-fields">
-                <!-- Fields populated by switch -->
-            </div>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <button type="submit" class="btn btn-primary" style="flex: 1;">Xác nhận thêm</button>
-                <button type="button" onclick="document.getElementById('add-modal').style.display='none'" class="btn" style="background: #e2e8f0; flex: 1;">Hủy</button>
-            </div>
-        </form>
-    </div>
-</div>
+            <input type="hidden" name="action" id="modal-action" value="add">
+            <input type="hidden" name="product_id" id="modal-product-id">
 
-<!-- Edit Modal (Chung) -->
-<div id="edit-modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1001; justify-content: center; align-items: center;">
-    <div style="background: #ffffff; padding: 2.5rem; border-radius: 16px; width: 500px; max-height: 90vh; overflow-y: auto;">
-        <h2 id="edit-modal-title">Cập nhật sản phẩm</h2>
-        <form id="edit-product-form" method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="edit">
-            <input type="hidden" name="product_id" id="edit-product-id">
-            <div id="edit-form-fields"></div>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <button type="submit" class="btn btn-primary" style="flex: 1;">Lưu thay đổi</button>
-                <button type="button" onclick="document.getElementById('edit-modal').style.display='none'" class="btn" style="background: #e2e8f0; flex: 1;">Hủy</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">Tên sản phẩm</label>
+                    <input type="text" name="name" id="field-name" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none;">
+                </div>
+                
+                <div>
+                    <label style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">Giá bán (VNĐ)</label>
+                    <input type="number" name="price" id="field-price" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                </div>
+                
+                <div>
+                    <label style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">Tồn kho</label>
+                    <input type="number" name="stock" id="field-stock" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                </div>
+
+                <div id="catalog-selector-container" style="grid-column: 1 / -1;">
+                    <label style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">Danh mục</label>
+                    <select name="catalog" id="field-catalog" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                        {% for cat in catalogs %}
+                        <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.slug }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">Thông số kỹ thuật (JSON)</label>
+                    <textarea name="specific_attributes" id="field-attrs" style="width: 100%; height: 120px; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.85rem;" placeholder='{"CPU": "Core i7", "RAM": "16GB"}'></textarea>
+                </div>
+
+                <div style="grid-column: 1 / -1;">
+                    <label style="display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">Link hình ảnh (URL)</label>
+                    <input type="text" name="image_url" id="field-image-url" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2.5rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Lưu thông tin</button>
+                <button type="button" onclick="closeModal()" class="btn" style="background: #f1f5f9; color: var(--text-main); flex: 1;">Đóng</button>
             </div>
         </form>
     </div>
 </div>
 
 <style>
-.tab-btn { background: transparent; color: #64748b; }
-.tab-btn.active { background: white; color: #2563eb; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-.stock-low { color: #ef4444 !important; }
+.tab-btn { background: transparent; color: var(--text-muted); }
+.tab-btn.active { background: white; color: var(--primary); box-shadow: var(--shadow-md); }
+.category-tbody tr:hover { background: #fafafa; }
 </style>
 
 <script>
-let currentTab = 'laptop';
+let currentTabSlug = '{% if catalogs %}{{ catalogs.0.slug }}{% endif %}';
 
-function switchTab(tab) {
-    currentTab = tab;
-    document.getElementById('laptop-body').style.display = tab === 'laptop' ? 'table-row-group' : 'none';
-    document.getElementById('mobile-body').style.display = tab === 'mobile' ? 'table-row-group' : 'none';
-    document.getElementById('clothes-body').style.display = tab === 'clothes' ? 'table-row-group' : 'none';
-    document.getElementById('book-body').style.display = tab === 'book' ? 'table-row-group' : 'none';
-    document.getElementById('tab-laptop').classList.toggle('active', tab === 'laptop');
-    document.getElementById('tab-mobile').classList.toggle('active', tab === 'mobile');
-    document.getElementById('tab-clothes').classList.toggle('active', tab === 'clothes');
-    document.getElementById('tab-book').classList.toggle('active', tab === 'book');
+function switchTab(slug) {
+    currentTabSlug = slug;
+    document.querySelectorAll('.category-tbody').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(slug + '-body').style.display = 'table-row-group';
+    document.getElementById('tab-' + slug).classList.add('active');
 }
 
 function openAddModal() {
-    const modal = document.getElementById('add-modal');
-    const form = document.getElementById('add-product-form');
-    const fields = document.getElementById('add-form-fields');
+    document.getElementById('modal-title').innerText = "Thêm sản phẩm mới";
+    document.getElementById('modal-action').value = "add";
+    document.getElementById('product-form').reset();
+    document.getElementById('catalog-selector-container').style.display = 'block';
     
-    if (currentTab === 'laptop') {
-        form.action = "{% url 'product_action' 'laptop' %}";
-        document.getElementById('add-modal-title').innerText = "💾 Thêm Laptop mới";
-        fields.innerHTML = `
-            <div class="form-group"><label>Tên Laptop</label><input type="text" name="name" required></div>
-            <div class="form-group"><label>Thương Hiệu</label><input type="text" name="brand" required></div>
-            <div class="form-group"><label>Vi xử lý (CPU)</label><input type="text" name="core" required></div>
-            <div class="form-group"><label>RAM</label><input type="text" name="ram" required></div>
-            <div class="form-group"><label>Ổ cứng</label><input type="text" name="disk" required></div>
-            <div class="form-group"><label>Màn hình</label><input type="text" name="screen" required></div>
-            <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" required></div>
-            <div class="form-group"><label>Số lượng</label><input type="number" name="stock" required></div>
-            <div class="form-group"><label>Tải ảnh lên</label><input type="file" name="image_upload" accept="image/*"></div>
-        `;
-    } else if (currentTab === 'mobile') {
-        form.action = "{% url 'product_action' 'mobile' %}";
-        document.getElementById('add-modal-title').innerText = "📱 Thêm Điện thoại mới";
-        fields.innerHTML = `
-            <div class="form-group"><label>Tên Điện Thoại</label><input type="text" name="name" required></div>
-            <div class="form-group"><label>Thương Hiệu</label><input type="text" name="brand" required></div>
-            <div class="form-group"><label>Màn hình</label><input type="text" name="screen" required></div>
-            <div class="form-group"><label>Camera</label><input type="text" name="camera" required></div>
-            <div class="form-group"><label>RAM</label><input type="text" name="ram" required></div>
-            <div class="form-group"><label>Bộ nhớ (ROM)</label><input type="text" name="storage" required></div>
-            <div class="form-group"><label>Dung lượng Pin</label><input type="text" name="battery" required></div>
-            <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" required></div>
-            <div class="form-group"><label>Số lượng</label><input type="number" name="stock" required></div>
-            <div class="form-group"><label>Tải ảnh lên</label><input type="file" name="image_upload" accept="image/*"></div>
-        `;
-    } else if (currentTab === 'clothes') {
-        form.action = "{% url 'product_action' 'clothes' %}";
-        document.getElementById('add-modal-title').innerText = "👕 Thêm Quần áo mới";
-        fields.innerHTML = `
-            <div class="form-group"><label>Tên Quần áo</label><input type="text" name="name" required></div>
-            <div class="form-group"><label>Thương Hiệu</label><input type="text" name="brand" required></div>
-            <div class="form-group"><label>Danh mục</label><input type="text" name="category" required></div>
-            <div class="form-group"><label>Chất liệu</label><input type="text" name="material" required></div>
-            <div class="form-group"><label>Màu sắc</label><input type="text" name="color" required></div>
-            <div class="form-group">
-                <label>Kích thước</label>
-                <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="S"> S</label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="M"> M</label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="L"> L</label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="XL"> XL</label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="XXL"> XXL</label>
-                </div>
-            </div>
-            <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" required></div>
-            <div class="form-group"><label>Số lượng</label><input type="number" name="stock" required></div>
-            <div class="form-group"><label>Mô tả chi tiết</label><input type="text" name="description" required></div>
-            <div class="form-group"><label>Tải ảnh lên</label><input type="file" name="image_upload" accept="image/*"></div>
-        `;
-    } else if (currentTab === 'book') {
-        form.action = "{% url 'product_action' 'book' %}";
-        document.getElementById('add-modal-title').innerText = "📚 Thêm Sách mới";
-        fields.innerHTML = `
-            <div class="form-group"><label>Tựa sách</label><input type="text" name="title" required></div>
-            <div class="form-group"><label>Tác giả</label><input type="text" name="author" required></div>
-            <div class="form-group"><label>Thể loại</label><input type="text" name="category" required></div>
-            <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" required></div>
-            <div class="form-group"><label>Số lượng kho</label><input type="number" name="stock" required></div>
-            <div class="form-group"><label>Mô tả</label><input type="text" name="description" required></div>
-            <div class="form-group"><label>Tải ảnh lên</label><input type="file" name="image_upload" accept="image/*"></div>
-        `;
+    const select = document.getElementById('field-catalog');
+    for (let i=0; i<select.options.length; i++) {
+        if (select.options[i].text.includes('(' + currentTabSlug + ')')) {
+            select.selectedIndex = i;
+            break;
+        }
     }
-    modal.style.display = 'flex';
+    document.getElementById('product-modal').style.display = 'flex';
 }
 
-function openEditLaptopModal(id, name, brand, core, ram, disk, screen, price, stock, image_url) {
-    const modal = document.getElementById('edit-modal');
-    const form = document.getElementById('edit-product-form');
-    const fields = document.getElementById('edit-form-fields');
-    form.action = "{% url 'product_action' 'laptop' %}";
-    document.getElementById('edit-product-id').value = id;
-    document.getElementById('edit-modal-title').innerText = "Sửa Laptop: " + name;
-    fields.innerHTML = `
-        <div class="form-group"><label>Tên Laptop</label><input type="text" name="name" value="${name}" required></div>
-        <div class="form-group"><label>Thương hiệu</label><input type="text" name="brand" value="${brand}" required></div>
-        <div class="form-group"><label>Vi xử lý</label><input type="text" name="core" value="${core}" required></div>
-        <div class="form-group"><label>RAM</label><input type="text" name="ram" value="${ram}" required></div>
-        <div class="form-group"><label>Ổ cứng</label><input type="text" name="disk" value="${disk}" required></div>
-        <div class="form-group"><label>Màn hình</label><input type="text" name="screen" value="${screen}" required></div>
-        <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" value="${price}" required></div>
-        <div class="form-group"><label>Số lượng</label><input type="number" name="stock" value="${stock}" required></div>
-        <div class="form-group"><label>Cập nhật ảnh mới</label><input type="file" name="image_upload" accept="image/*"><input type="hidden" name="image_url" value="${image_url === 'None' ? '' : image_url}"></div>
-    `;
-    modal.style.display = 'flex';
-}
-
-function openEditMobileModal(id, name, brand, screen, camera, ram, storage, battery, price, stock, image_url) {
-    const modal = document.getElementById('edit-modal');
-    const form = document.getElementById('edit-product-form');
-    const fields = document.getElementById('edit-form-fields');
-    form.action = "{% url 'product_action' 'mobile' %}";
-    document.getElementById('edit-product-id').value = id;
-    document.getElementById('edit-modal-title').innerText = "Sửa Điện thoại: " + name;
-    fields.innerHTML = `
-        <div class="form-group"><label>Tên điện thoại</label><input type="text" name="name" value="${name}" required></div>
-        <div class="form-group"><label>Thương hiệu</label><input type="text" name="brand" value="${brand}" required></div>
-        <div class="form-group"><label>Màn hình</label><input type="text" name="screen" value="${screen}" required></div>
-        <div class="form-group"><label>Camera</label><input type="text" name="camera" value="${camera}" required></div>
-        <div class="form-group"><label>RAM</label><input type="text" name="ram" value="${ram}" required></div>
-        <div class="form-group"><label>Bộ nhớ</label><input type="text" name="storage" value="${storage}" required></div>
-        <div class="form-group"><label>Pin</label><input type="text" name="battery" value="${battery}" required></div>
-        <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" value="${price}" required></div>
-        <div class="form-group"><label>Số lượng</label><input type="number" name="stock" value="${stock}" required></div>
-        <div class="form-group"><label>Cập nhật ảnh mới</label><input type="file" name="image_upload" accept="image/*"><input type="hidden" name="image_url" value="${image_url === 'None' ? '' : image_url}"></div>
-    `;
-    modal.style.display = 'flex';
-}
-
-function openEditClothesModal(id, name, brand, category, material, color, size, price, stock, image_url) {
-    const modal = document.getElementById('edit-modal');
-    const form = document.getElementById('edit-product-form');
-    const fields = document.getElementById('edit-form-fields');
-    form.action = "{% url 'product_action' 'clothes' %}";
-    document.getElementById('edit-product-id').value = id;
-    document.getElementById('edit-modal-title').innerText = "Sửa Quần áo: " + name;
+async function openEditModal(id, type) {
+    document.getElementById('modal-title').innerText = "Cập nhật sản phẩm #" + id;
+    document.getElementById('modal-action').value = "edit";
+    document.getElementById('modal-product-id').value = id;
+    document.getElementById('catalog-selector-container').style.display = 'none';
     
-    // Parse size array
-    let cleanSize = size.replace(/[\[\]']/g, '');
-    let sizesArr = cleanSize.split(',').map(s => s.trim());
-    
-    fields.innerHTML = `
-        <div class="form-group"><label>Tên Quần áo</label><input type="text" name="name" value="${name}" required></div>
-        <div class="form-group"><label>Thương hiệu</label><input type="text" name="brand" value="${brand}" required></div>
-        <div class="form-group"><label>Danh mục</label><input type="text" name="category" value="${category}" required></div>
-        <div class="form-group"><label>Chất liệu</label><input type="text" name="material" value="${material}" required></div>
-        <div class="form-group"><label>Màu sắc</label><input type="text" name="color" value="${color}" required></div>
-        <div class="form-group">
-            <label>Kích thước</label>
-            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="S" ${sizesArr.includes('S') ? 'checked' : ''}> S</label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="M" ${sizesArr.includes('M') ? 'checked' : ''}> M</label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="L" ${sizesArr.includes('L') ? 'checked' : ''}> L</label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="XL" ${sizesArr.includes('XL') ? 'checked' : ''}> XL</label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;"><input type="checkbox" name="size" value="XXL" ${sizesArr.includes('XXL') ? 'checked' : ''}> XXL</label>
-            </div>
-        </div>
-        <div class="form-group"><label> Giá (VNĐ)</label><input type="number" step="1" name="price" value="${price}" required></div>
-        <div class="form-group"><label>Số lượng</label><input type="number" name="stock" value="${stock}" required></div>
-        <div class="form-group"><label>Mô tả chi tiết</label><input type="text" name="description" value="" placeholder="(Bỏ trống nếu không đổi)"></div>
-        <div class="form-group"><label>Cập nhật ảnh mới</label><input type="file" name="image_upload" accept="image/*"><input type="hidden" name="image_url" value="${image_url === 'None' ? '' : image_url}"></div>
-    `;
-    modal.style.display = 'flex';
+    try {
+        const res = await fetch('http://localhost:8008/api/products/' + id + '/');
+        const p = await res.json();
+        
+        document.getElementById('field-name').value = p.name;
+        document.getElementById('field-price').value = p.price;
+        document.getElementById('field-stock').value = p.stock;
+        document.getElementById('field-attrs').value = JSON.stringify(p.specific_attributes, null, 2);
+        document.getElementById('field-image-url').value = p.image_url || "";
+        
+        document.getElementById('product-modal').style.display = 'flex';
+    } catch (e) {
+        alert("Lỗi khi tải thông tin sản phẩm");
+    }
 }
 
-function openEditBookModal(id, title, author, category, price, stock, image_url) {
-    const modal = document.getElementById('edit-modal');
-    const form = document.getElementById('edit-product-form');
-    const fields = document.getElementById('edit-form-fields');
-    form.action = "{% url 'product_action' 'book' %}";
-    document.getElementById('edit-product-id').value = id;
-    document.getElementById('edit-modal-title').innerText = "Sửa Sách: " + title;
-    
-    fields.innerHTML = `
-        <div class="form-group"><label>Tựa sách</label><input type="text" name="title" value="${title}" required></div>
-        <div class="form-group"><label>Tác giả</label><input type="text" name="author" value="${author}" required></div>
-        <div class="form-group"><label>Thể loại</label><input type="text" name="category" value="${category}" required></div>
-        <div class="form-group"><label>Giá (VNĐ)</label><input type="number" step="1" name="price" value="${price}" required></div>
-        <div class="form-group"><label>Số lượng</label><input type="number" name="stock" value="${stock}" required></div>
-        <div class="form-group"><label>Mô tả chi tiết</label><input type="text" name="description" value="" placeholder="(Bỏ trống nếu không đổi)"></div>
-        <div class="form-group"><label>Cập nhật ảnh mới</label><input type="file" name="image_upload" accept="image/*"><input type="hidden" name="image_url" value="${image_url === 'None' ? '' : image_url}"></div>
-    `;
-    modal.style.display = 'flex';
+function closeModal() {
+    document.getElementById('product-modal').style.display = 'none';
 }
 </script>
 {% endblock %}

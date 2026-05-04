@@ -1,59 +1,159 @@
 {% extends 'gateway/base.html' %}
+{% load humanize l10n %}
 {% block content %}
-<div style="background: #ffffff; border: 1px solid var(--glass-border); border-radius: 20px; padding: 3rem; max-width: 1200px; margin: 2rem auto; box-shadow: 0 15px 50px rgba(0,0,0,0.08);">
-    <h1 style="margin-top: 0; margin-bottom: 2.5rem; font-size: 2.5rem;">🛒 Giỏ hàng của bạn</h1>
-    
-    {% if cart %}
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 2px solid var(--glass-border); color: #64748b; font-size: 1.1rem;">
-                    <th style="padding: 1.2rem 0;">Sản phẩm</th>
-                    <th style="padding: 1.2rem 0;">Loại</th>
-                    <th style="padding: 1.2rem 0;">Giá (VNĐ)</th>
-                    <th style="padding: 1.2rem 0;">Số lượng</th>
-                    <th style="padding: 1.2rem 0; text-align: right;">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% load humanize %}
-                {% for key, item in cart.items %}
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.3s;">
-                    <td style="padding: 2rem 0; font-weight: 600; font-size: 1.3rem;">
-                        {{ item.name }}
-                        {% if item.size %}
-                            <span style="display: block; font-size: 0.9rem; color: #64748b; margin-top: 5px;">Size: {{ item.size }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 2rem 0;"><span class="tag" style="font-size: 1rem; padding: 6px 15px;">{{ item.type|title }}</span></td>
-                    <td style="padding: 2rem 0; font-weight: 800; font-size: 1.2rem; color: var(--accent);">{{ item.price|floatformat:"0"|intcomma }}</td>
-                    <td style="padding: 2rem 0; font-weight: 600; font-size: 1.2rem;">{{ item.qty }}</td>
-                    <td style="padding: 2rem 0; text-align: right;">
-                        <form action="{% url 'cart' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="remove">
-                            <input type="hidden" name="cart_key" value="{{ key }}">
-                            <button type="submit" class="btn btn-danger" style="padding: 10px 20px; font-size: 1rem; border-radius: 10px;">Xóa</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4rem; padding-top: 2.5rem; border-top: 2px solid var(--glass-border);">
-            <a href="{% url 'home' %}" class="btn" style="background: #f1f5f9; color: #1e293b; padding: 15px 30px; font-size: 1.1rem;">🏠 Tiếp tục mua hàng</a>
-            <div style="display: flex; align-items: center; gap: 3rem;">
-                <h2 style="margin: 0; font-size: 2.2rem;">Tổng cộng: <span style="color: var(--accent);">{{ total|floatformat:"0"|intcomma }} VNĐ</span></h2>
-                <button class="btn btn-primary" style="font-size: 1.4rem; padding: 15px 45px; border-radius: 12px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);">Thanh toán ngay</button>
+<div class="container animate-up" style="padding-top: 4rem;">
+    <div class="glass-card" style="padding: 3rem; background: white;">
+        <h1 style="margin-top: 0; margin-bottom: 2.5rem; font-size: 2.2rem; font-weight: 800;">🛒 Giỏ hàng của bạn</h1>
+        
+        {% if cart %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #f1f5f9; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; font-weight: 800;">
+                        <th style="padding: 1.2rem 0;">Sản phẩm</th>
+                        <th style="padding: 1.2rem 0;">Loại</th>
+                        <th style="padding: 1.2rem 0;">Giá bán</th>
+                        <th style="padding: 1.2rem 0;">Số lượng</th>
+                        <th style="padding: 1.2rem 0;">Thành tiền</th>
+                        <th style="padding: 1.2rem 0; text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, item in cart.items %}
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.3s;">
+                        <td style="padding: 2rem 0;">
+                            <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main);">{{ item.name }}</div>
+                            {% if item.size %}
+                                <span style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Kích cỡ: {{ item.size }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 2rem 0;"><span class="tag" style="background: #eef2ff; color: var(--primary);">{{ item.type }}</span></td>
+                        <td style="padding: 2rem 0; font-weight: 800; font-size: 1.1rem; color: #ef4444;">
+                            <span class="item-price" data-price="{{ item.price|floatformat:'0'|unlocalize }}">{{ item.price|floatformat:'0' }}</span> 
+                            <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span>
+                        </td>
+                        <td style="padding: 2rem 0;">
+                            <input type="number" name="qty" value="{{ item.qty }}" min="1" 
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, ''); if(this.value < 1) this.value = 1;"
+                                   onchange="updateCartQuantity('{{ key }}', {{ item.price|floatformat:'0'|unlocalize }}, this.value)"
+                                   style="width: 70px; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: 800; text-align: center; outline: none; transition: 0.3s;">
+                        </td>
+                        <td style="padding: 2rem 0; font-weight: 800; font-size: 1.1rem; color: #ef4444;">
+                            <span id="subtotal-{{ key }}" class="item-subtotal">{{ item.subtotal|floatformat:'0' }}</span> 
+                            <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span>
+                        </td>
+                        <td style="padding: 2rem 0; text-align: right;">
+                            <form action="{% url 'cart' %}" method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove">
+                                <input type="hidden" name="cart_key" value="{{ key }}">
+                                <button type="submit" class="btn" style="background: #fef2f2; color: #ef4444; font-size: 0.9rem; padding: 8px 16px; border-radius: 10px;">Xóa</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid #f1f5f9;">
+            <a href="{% url 'home' %}" class="btn" style="background: #f1f5f9; color: var(--text-main);">← Tiếp tục mua sắm</a>
+            <div style="display: flex; align-items: center; gap: 2.5rem;">
+                <div style="text-align: right;">
+                    <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Tổng số tiền:</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: #ef4444;">
+                        <span id="cart-grand-total">{{ total|floatformat:"0" }}</span> 
+                        <span style="font-size: 1.1rem;">VNĐ</span>
+                    </div>
+                </div>
+                <a href="{% url 'checkout' %}" class="btn btn-primary" style="padding: 16px 40px; font-size: 1.1rem; text-decoration: none; display: inline-block;">Mua hàng</a>
             </div>
         </div>
-    {% else %}
-    <div style="text-align: center; padding: 4rem 0;">
-        <h2 style="color: var(--text-muted); margin-bottom: 2rem;">Giỏ hàng của bạn đang trống.</h2>
-        <a href="{% url 'home' %}" class="btn btn-primary" style="font-size: 1.2rem; padding: 12px 30px;">Xem sản phẩm</a>
+        {% else %}
+        <div style="text-align: center; padding: 6rem 0;">
+            <div style="font-size: 4rem; margin-bottom: 2rem;">🛒</div>
+            <h2 style="color: var(--text-muted); margin-bottom: 2rem; font-weight: 600;">Giỏ hàng hiện đang trống</h2>
+            <a href="{% url 'home' %}" class="btn btn-primary">Khám phá sản phẩm ngay</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if ai_recommendations %}
+    <div class="animate-up" style="margin-top: 4rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: var(--text-main); margin: 0;">✨ Có thể bạn sẽ thích</h2>
+            <p style="color: var(--text-muted); margin: 0;">Gợi ý từ AI dựa trên giỏ hàng của bạn</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem;">
+            {% for p in ai_recommendations %}
+            <div class="glass-card ai-cart-item" style="padding: 1.2rem; background: white; border-radius: 20px; transition: 0.3s; cursor: pointer; position: relative; overflow: hidden; {% if forloop.counter0 >= 4 %}display: none;{% else %}display: block;{% endif %}" onclick="window.location='{% url 'product_detail' p.type p.id %}'">
+                <div style="height: 140px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                    {% if p.image_url %}
+                        <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+                    {% else %}
+                        <div style="font-size: 3rem; opacity: 0.1;">📦</div>
+                    {% endif %}
+                </div>
+                <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0 0 0.5rem; color: var(--text-main); line-height: 1.4; height: 2.8rem; overflow: hidden;">{{ p.name }}</h4>
+                <div style="color: #ef4444; font-weight: 800; font-size: 1.2rem; margin-bottom: 1rem;">
+                    {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.8rem;">đ</span>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; padding: 8px; font-size: 0.85rem;">Mua ngay</button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if ai_recommendations|length > 4 %}
+        <div style="text-align: center; margin-top: 2rem;">
+            <button onclick="document.querySelectorAll('.ai-cart-item').forEach(el=>{el.style.display='block'}); this.style.display='none';" class="btn" style="background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 10px 24px; font-weight: 700; border-radius: 20px; transition: 0.3s;" onmouseover="this.style.background='var(--primary)'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='var(--primary)'">
+                Xem thêm sản phẩm gợi ý ↓
+            </button>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
+
+<script>
+function updateCartQuantity(key, price, qty) {
+    if (!qty || qty < 1) qty = 1;
+    
+    // 1. Update Subtotal for this item
+    const subtotalEl = document.getElementById(`subtotal-${key}`);
+    const newSubtotal = price * qty;
+    subtotalEl.innerText = newSubtotal.toLocaleString('vi-VN');
+
+    // 2. Update Grand Total
+    let grandTotal = 0;
+    document.querySelectorAll('.item-subtotal').forEach(el => {
+        // More robust cleaning: remove everything except digits
+        let val = el.innerText.replace(/\D/g, '');
+        grandTotal += parseFloat(val) || 0;
+    });
+    document.getElementById('cart-grand-total').innerText = grandTotal.toLocaleString('vi-VN');
+
+    // 3. Silent persist to server via AJAX
+    const formData = new FormData();
+    formData.append('action', 'update');
+    formData.append('cart_key', key);
+    formData.append('qty', qty);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch("{% url 'cart' %}", {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+}
+
+// Initial formatting
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.item-price, .item-subtotal, #cart-grand-total').forEach(el => {
+        // If it's the raw price span with data-price, use that for precision
+        let raw = el.getAttribute('data-price') || el.innerText;
+        let val = parseFloat(raw.replace(/\D/g, ''));
+        if(!isNaN(val)) el.innerText = val.toLocaleString('vi-VN');
+    });
+});
+</script>
 {% endblock %}

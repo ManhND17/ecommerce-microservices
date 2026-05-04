@@ -1,0 +1,20 @@
+{% extends 'gateway/base.html' %}
+{% block content %}
+<div class="container animate-up" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="glass-card" style="padding: 3rem; background: white; text-align: center;">
+        <h2 style="margin-bottom: 1rem; color: var(--primary);">Đăng nhập thành công!</h2>
+        <p>Đang chuyển hướng về trang chủ...</p>
+    </div>
+</div>
+
+<script>
+    // Save JWT tokens to localStorage for client-side API requests
+    localStorage.setItem('access_token', '{{ access_token }}');
+    localStorage.setItem('refresh_token', '{{ refresh_token }}');
+    
+    // Redirect to home page
+    setTimeout(function() {
+        window.location.href = "{% url 'home' %}";
+    }, 500);
+</script>
+{% endblock %}

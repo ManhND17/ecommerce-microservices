@@ -1,195 +1,206 @@
 {% extends 'gateway/base.html' %}
 {% load humanize %}
 {% block content %}
-<div style="padding: 2rem 5% 5rem 5%;">
-    <!-- Section Title -->
-    <div style="margin-bottom: 3rem; text-align: center;">
-        <p style="color: #64748b; font-size: 1.1rem;">Khám phá bộ sưu tập {{ products|length }} sản phẩm mới nhất tại TechNova</p>
-        <div style="width: 80px; height: 5px; background: var(--accent); margin: 1.5rem auto 0; border-radius: 10px;"></div>
-    </div>
 
-    <!-- Category Filter -->
-    <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 3rem;">
-        <button class="filter-btn active" onclick="filterProducts('all')" id="filter-all">Tất cả</button>
-        <button class="filter-btn" onclick="filterProducts('laptop')" id="filter-laptop">💻 Laptop</button>
-        <button class="filter-btn" onclick="filterProducts('mobile')" id="filter-mobile">📱 Điện thoại</button>
-        <button class="filter-btn" onclick="filterProducts('clothes')" id="filter-clothes">👕 Quần áo</button>
-        <button class="filter-btn" onclick="filterProducts('book')" id="filter-book">📚 Sách</button>
-    </div>
-
-    <!-- Product Grid -->
-    <div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); column-gap: 2.5rem; row-gap: 4.5rem; align-items: stretch;">
-        {% for p in products %}
-        <div class="card product-card" data-category="{{ p.type }}" style="position: relative; overflow: hidden; height: 100%; display: flex; flex-direction: column; transition: all 0.3s ease; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 24px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03);" onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 12px 24px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.03)';">
-            
-            <!-- Type Badge & Icon -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <span class="badge {% if p.type == 'laptop' %}badge-laptop{% elif p.type == 'mobile' %}badge-mobile{% elif p.type == 'book' %}badge-book{% else %}badge-clothes{% endif %}" style="font-weight: 800; padding: 4px 12px; border-radius: 10px; font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase;">
-                    {{ p.brand }}
-                </span>
-                <div style="font-size: 1.4rem;">
-                    {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% elif p.type == 'book' %}📚{% else %}👕{% endif %}
-                </div>
-            </div>
-
-            <!-- Link Wrapping Image & Title -->
-            <a href="{% url 'product_detail' p.type p.id %}" style="text-decoration: none; color: inherit; display: block;">
-                <!-- Product Image -->
-                <div style="height: 180px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; border-radius: 16px; overflow: hidden; background: #f8fafc; border: 1px solid #f1f5f9;">
-                    {% if p.image_url %}
-                        <img src="{{ p.image_url }}" alt="{{ p.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.5s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    {% else %}
-                        <div style="font-size: 4rem; opacity: 0.2;">
-                            {% if p.type == 'laptop' %}💻{% elif p.type == 'mobile' %}📱{% elif p.type == 'book' %}📚{% else %}👕{% endif %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Name -->
-                <h3 style="font-size: 1.1rem; margin-top: 0; margin-bottom: 0.8rem; color: #1e293b; font-weight: 700; line-height: 1.3; min-height: 2.8rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-                    {{ p.name }}
-                </h3>
-            </a>
-            
-            <!-- Specs Content -->
-            <div style="font-size: 0.8rem; color: #64748b; flex-grow: 1; line-height: 1.4; margin-bottom: 1.2rem; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;">
-                {% if p.type == 'laptop' %}
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">CPU:</span> <span style="font-weight: 600; color: #334155;">{{ p.core }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">RAM:</span> <span style="font-weight: 600; color: #334155;">{{ p.ram }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Ổ cứng:</span> <span style="font-weight: 600; color: #334155;">{{ p.disk }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Màn hình:</span> <span style="font-weight: 600; color: #334155;">{{ p.screen }}</span></div>
-                {% elif p.type == 'mobile' %}
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Màn hình:</span> <span style="font-weight: 600; color: #334155;">{{ p.screen }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Camera:</span> <span style="font-weight: 600; color: #334155;">{{ p.camera }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Pin:</span> <span style="font-weight: 600; color: #334155;">{{ p.battery }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Bộ nhớ:</span> <span style="font-weight: 600; color: #334155;">{{ p.storage }}</span></div>
-                {% elif p.type == 'book' %}
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Tác giả:</span> <span style="font-weight: 600; color: #334155;">{{ p.author }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Thể loại:</span> <span style="font-weight: 600; color: #334155;">{{ p.category }}</span></div>
-                {% else %}
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Danh mục:</span> <span style="font-weight: 600; color: #334155;">{{ p.category }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Chất liệu:</span> <span style="font-weight: 600; color: #334155;">{{ p.material }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Màu sắc:</span> <span style="font-weight: 600; color: #334155;">{{ p.color }}</span></div>
-                    <div><span style="display:block; font-size: 0.7rem; opacity: 0.6;">Kích thước:</span> <span style="font-weight: 600; color: #334155;">{{ p.size|join:", " }}</span></div>
-                {% endif %}
-            </div>
-            
-            <div style="margin-top: auto;">
-                <div style="font-size: 1.3rem; font-weight: 900; color: var(--accent); margin-bottom: 0.8rem; display: flex; align-items: baseline; gap: 4px;">
-                    {{ p.price|floatformat:"0"|intcomma }}
-                    <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700;">VNĐ</span>
-                </div>
-                
-                <form action="{% url 'cart' %}" method="post" style="display: flex; gap: 8px;">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="product_id" value="{{ p.id }}">
-                    <input type="hidden" name="product_type" value="{{ p.type }}">
-                    <input type="hidden" name="product_name" value="{{ p.name }}">
-                    <input type="hidden" name="price" value="{{ p.price }}">
-                    
-                    {% if p.type == 'clothes' %}
-                    <select name="selected_size" required style="width: 75px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; font-size: 0.9rem; font-weight: 700; color: #1e293b;">
-                        <option value="">Size</option>
-                        {% for s in p.size %}
-                        <option value="{{ s }}">{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                    {% endif %}
-
-                    <input type="number" name="qty" value="1" min="1" max="{{ p.stock|default:10 }}" style="width: 55px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 10px; text-align: center; font-weight: 700; color: #1e293b; background: #f8fafc; font-size: 0.9rem;">
-                    <button type="submit" class="btn btn-primary" style="flex-grow: 1; padding: 10px; font-weight: 700; border-radius: 10px; font-size: 0.95rem; border: none; cursor: pointer; transition: 0.2s;">
-                        🛒 Mua Ngay
-                    </button>
-                </form>
-            </div>
+<!-- Hero Section -->
+<div style="background: linear-gradient(135deg, #0f172a 0%, #059669 100%); padding: 4rem 5% 5rem; color: white; text-align: center; position: relative; overflow: hidden; border-bottom-left-radius: 60px; border-bottom-right-radius: 60px;">
+    <div style="position: absolute; top: -10%; left: -5%; width: 200px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; blur: 60px;"></div>
+    <div class="animate-up" style="position: relative; z-index: 1;">
+        <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -1px;">TechNova Store</h1>
+        <p style="font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto 2rem; line-height: 1.6;">
+            Chào mừng bạn đến với kỷ nguyên công nghệ mới. Khám phá những thiết bị đỉnh cao với ưu đãi hấp dẫn nhất dành riêng cho bạn.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 0.8rem;">
+            <a href="#laptop-section" class="btn" style="background: white; color: var(--primary); padding: 12px 28px;">Mua ngay</a>
+            <a href="{% url 'chat' %}" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); backdrop-filter: blur(10px); padding: 12px 28px;">Tư vấn AI</a>
         </div>
-        {% empty %}
-        <div style="grid-column: 1 / -1; text-align: center; padding: 5rem 0; opacity: 0.6;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">📦</div>
-            <h3 style="font-size: 1.5rem;">Cửa hàng đang chuẩn bị nhập hàng...</h3>
-        </div>
-        {% endfor %}
     </div>
 </div>
 
-<style>
-.product-grid {
-    animation: fadeIn 0.5s ease-out;
-}
-.badge-laptop {
-    background: #eff6ff !important;
-    color: #2563eb !important;
-}
-.badge-mobile {
-    background: #fef2f2 !important;
-    color: #ef4444 !important;
-}
-.badge-clothes {
-    background: #fdf4ff !important;
-    color: #c026d3 !important;
-}
-.badge-book {
-    background: #f0fdf4 !important;
-    color: #16a34a !important;
-}
-.filter-btn {
-    padding: 10px 24px;
-    border: 2px solid #e2e8f0;
-    border-radius: 50px;
-    background: white;
-    font-weight: 700;
-    color: #64748b;
-    cursor: pointer;
-    transition: 0.3s all ease;
-    font-size: 0.95rem;
-}
-.filter-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-.filter-btn.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-</style>
+<div class="container" style="margin-top: 2rem;">
+    {% if ai_recommendations %}
+    <!-- AI Recommendations -->
+    <div class="animate-up" style="margin-bottom: 3rem; background: linear-gradient(135deg, rgba(15, 23, 42, 0.03) 0%, rgba(5, 150, 105, 0.03) 100%); padding: 2rem; border-radius: 20px; border: 1px solid rgba(5, 150, 105, 0.1);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 10px;">
+                ✨ Gợi ý dành riêng cho bạn
+            </h2>
+            <span class="tag" style="background: rgba(5, 150, 105, 0.1); color: var(--primary);">Powered by AI</span>
+        </div>
+        
+        <div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem;">
+            {% for p in ai_recommendations %}
+            <div class="glass-card product-card ai-home-item" style="padding: 1rem; cursor: pointer; flex-direction: column; {% if forloop.counter0 >= 4 %}display: none;{% else %}display: flex;{% endif %}" onclick="window.location='{% url 'product_detail' p.type p.id %}'">
+                <div style="height: 160px; border-radius: 12px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; border: 1px solid #f1f5f9;">
+                    {% if p.image_url %}
+                        <img src="{{ p.image_url }}" alt="{{ p.name }}" 
+                             onerror="this.onerror=null; this.src='https://placehold.co/400x400?text=No+Image';" 
+                             style="max-width: 90%; max-height: 90%; object-fit: contain;">
+                    {% else %}
+                        <div style="font-size: 3rem; opacity: 0.1;">📦</div>
+                    {% endif %}
+                </div>
+                
+                <div style="padding: 0 0.5rem 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="tag" style="background: #eef2ff; color: var(--primary);">{{ p.brand|default:"TechNova" }}</span>
+                    </div>
+                    <h3 style="font-size: 1.05rem; margin: 0 0 0.3rem; font-weight: 700; color: var(--text-main); line-height: 1.3; height: 2.8rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                        {{ p.name }}
+                    </h3>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #ef4444; margin-bottom: 1rem;">
+                        {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%; padding: 8px;">Xem chi tiết</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if ai_recommendations|length > 4 %}
+        <div style="text-align: center; margin-top: 2rem;">
+            <button onclick="document.querySelectorAll('.ai-home-item').forEach(el=>{el.style.display='flex'}); this.style.display='none';" class="btn" style="background: transparent; color: var(--primary); border: 2px solid var(--primary); padding: 10px 24px; font-weight: 700; border-radius: 20px; transition: 0.3s;" onmouseover="this.style.background='var(--primary)'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='var(--primary)'">
+                Xem thêm sản phẩm gợi ý ↓
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Featured Catalogs -->
+    <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap;">
+        <button id="cat-all" onclick="showAllInCategory('all')" class="glass-card cat-btn active" style="padding: 0.8rem 1.5rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: var(--shadow-lg);">
+            <span style="font-size: 1.1rem;">🏠</span>
+            <span style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">Tất cả</span>
+        </button>
+        {% for cat in catalogs %}
+        <button id="cat-{{ cat.slug }}" onclick="showAllInCategory('{{ cat.slug }}')" class="glass-card cat-btn" style="padding: 0.8rem 1.5rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: var(--shadow-lg);">
+            <span style="font-size: 1.1rem;">
+                {% if cat.slug == 'laptop' %}💻{% elif cat.slug == 'mobile' %}📱{% elif cat.slug == 'books' %}📚{% elif cat.slug == 'smartwatch' %}⌚{% elif cat.slug == 'tablet' %}📱{% else %}📦{% endif %}
+            </span>
+            <span style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">{{ cat.name }}</span>
+        </button>
+        {% endfor %}
+    </div>
+    
+    <div id="featured-sections">
+        <!-- Grouped Sections -->
+        {% for slug, products in grouped_products.items %}
+    <section id="{{ slug }}-section" class="animate-up" style="margin-bottom: 4rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px;">
+                {% if slug == 'laptop' %}💻{% elif slug == 'mobile' %}📱{% elif slug == 'books' %}📚{% elif slug == 'smartwatch' %}⌚{% elif slug == 'tablet' %}📱{% else %}📦{% endif %}
+                {% for cat in catalogs %}{% if cat.slug == slug %}{{ cat.name }}{% endif %}{% endfor %}
+            </h2>
+            <button onclick="showAllInCategory('{{ slug }}')" class="btn" style="background: transparent; color: var(--primary); font-weight: 700; border: 1px solid var(--primary); padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; transition: 0.3s;">
+                Xem thêm <span style="margin-left:5px">→</span>
+            </button>
+        </div>
+
+        <div class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
+            {% for p in products %}
+            <div class="glass-card product-card" style="padding: 0.8rem; cursor: pointer; display: flex; flex-direction: column;" onclick="window.location='{% url 'product_detail' p.type p.id %}'">
+                <div style="height: 180px; border-radius: 12px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; border: 1px solid #f1f5f9;">
+                    {% if p.image_url %}
+                        <img src="{{ p.image_url }}" alt="{{ p.name }}" 
+                             onerror="this.onerror=null; this.src='https://placehold.co/400x400?text=No+Image';" 
+                             style="max-width: 90%; max-height: 90%; object-fit: contain;">
+                    {% else %}
+                        <div style="font-size: 3rem; opacity: 0.1;">📦</div>
+                    {% endif %}
+                </div>
+                
+                <div style="padding: 0 0.5rem 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="tag" style="background: #eef2ff; color: var(--primary);">{{ p.brand|default:"TechNova" }}</span>
+                        {% if p.stock < 5 %}<span class="tag" style="background: #fef2f2; color: #ef4444;">Sắp hết hàng</span>{% endif %}
+                    </div>
+                    
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.3rem; font-weight: 700; color: var(--text-main); line-height: 1.3; height: 3rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                        {{ p.name }}
+                    </h3>
+
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #ef4444; margin-bottom: 1rem;">
+                        {{ p.price|floatformat:"0"|intcomma }} <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span>
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" style="flex-grow: 1;">Xem chi tiết</button>
+                        <div style="background: #f1f5f9; padding: 12px; border-radius: 12px; color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                            🛒
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+    </div>
+
+    <!-- Filtered View Section -->
+    <div id="filtered-view" style="display: none; margin-bottom: 9rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; border-bottom: 2px solid var(--primary); padding-bottom: 1rem;">
+            <h2 id="filter-title" style="font-size: 2rem; font-weight: 800; margin: 0;">Danh mục</h2>
+            <button onclick="showAllInCategory('all')" class="btn" style="background: #f1f5f9; color: var(--text-main);"> Quay lại trang chủ </button>
+        </div>
+        <div id="filter-grid" class="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2.5rem;">
+            <!-- Filtered products will be rendered here -->
+        </div>
+    </div>
+</div>
+
+{{ all_products|json_script:"products-data" }}
 
 <script>
-function filterProducts(category) {
-    // Cập nhật trạng thái nút
-    const buttons = document.querySelectorAll('.filter-btn');
-    buttons.forEach(btn => btn.classList.remove('active'));
-    document.getElementById('filter-' + category).classList.add('active');
+const allProducts = JSON.parse(document.getElementById('products-data').textContent);
 
-    // Lọc sản phẩm
-    const cards = document.querySelectorAll('.product-card');
-    cards.forEach(card => {
-        if (category === 'all' || card.getAttribute('data-category') === category) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
+function showAllInCategory(slug) {
+    const featured = document.getElementById('featured-sections');
+    const filtered = document.getElementById('filtered-view');
+    const grid = document.getElementById('filter-grid');
+    const title = document.getElementById('filter-title');
 
-function trackProductClick(productId, productType) {
-    if(!productId) return;
-    fetch('/api/track-click/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            'product_id': productId,
-            'product_type': productType
-        })
-    }).catch(e => console.log(e));
+    // Cập nhật trạng thái button
+    document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('cat-' + slug).classList.add('active');
+
+    if (slug === 'all') {
+        featured.style.display = 'block';
+        filtered.style.display = 'none';
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+    } else {
+        featured.style.display = 'none';
+        filtered.style.display = 'block';
+        grid.innerHTML = '';
+        
+        const filteredProducts = allProducts.filter(p => p.type === slug);
+        title.innerText = "Tất cả " + (slug.charAt(0).toUpperCase() + slug.slice(1));
+
+        filteredProducts.forEach(p => {
+            const card = `
+                <div class="glass-card product-card" style="padding: 1rem; cursor: pointer; display: flex; flex-direction: column;" onclick="window.location='/product/${p.type}/${p.id}/'">
+                    <div style="height: 180px; border-radius: 12px; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; border: 1px solid #f1f5f9;">
+                        ${p.image_url ? `<img src="${p.image_url}" onerror="this.onerror=null; this.src='https://placehold.co/400x400?text=No+Image';" style="max-width: 90%; max-height: 90%; object-fit: contain;">` : `<div style="font-size: 2rem; opacity: 0.1;">📦</div>`}
+                    </div>
+                    <div style="padding: 0 0.5rem 0.5rem;">
+                        <span class="tag" style="background: #eef2ff; color: var(--primary); margin-bottom: 0.5rem; display: inline-block;">${p.brand || 'TechNova'}</span>
+                        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; height: 3rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${p.name}</h3>
+                        <div style="font-size: 1.3rem; font-weight: 800; color: #ef4444; margin-bottom: 1rem;">${Number(p.price).toLocaleString()} <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span></div>
+                        <button class="btn btn-primary" style="width: 100%; padding: 10px;">Xem chi tiết</button>
+                    </div>
+                </div>
+            `;
+            grid.innerHTML += card;
+        });
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
 }
 </script>
+
+<style>
+.cat-btn.active { background: var(--primary) !important; color: white !important; }
+.cat-btn.active span { color: white !important; }
+.product-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-xl); border-color: var(--primary); }
+</style>
 {% endblock %}
