@@ -14,7 +14,7 @@ Biến embedder, collection, chroma_client lấy từ ai_app/config.py.
 """
 
 import asyncio
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import requests
 
@@ -294,44 +294,183 @@ def _rag_retrieve(query: str, n: int = 5) -> List[dict]:
 # Chat Reply Builder
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _build_reply(
+def _build_product_context(products: List[dict], max_products: int = 5) -> str:
+    """
+    Tạo context văn bản mô tả sản phẩm để đưa vào Gemini prompt.
+
+    Args:
+        products:     Danh sách sản phẩm (từ RAG + KB).
+        max_products: Số lượng sản phẩm tối đa đưa vào context.
+
+    Returns:
+        Chuỗi văn bản mô tả từng sản phẩm, mỗi dòng 1 sản phẩm.
+    """
+    lines: List[str] = []
+    for i, p in enumerate(products[:max_products], 1):
+        try:
+            price_str = f"{int(float(str(p.get('price', 0)).replace(',', ''))):,}đ"
+        except (ValueError, TypeError):
+            price_str = str(p.get("price", "N/A"))
+
+        name      = p.get("name", "Unknown")
+        ptype     = p.get("type", p.get("category", ""))
+        detail    = p.get("details", "")
+
+        line = f"{i}. [{ptype.upper()}] {name} — Giá: {price_str}"
+        if detail and len(detail) < 200:
+            line += f" | {detail[:150]}..."
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
+def _build_reply_fallback(
     query: str,
     rag_context: List[dict],
     kb_context: List[dict],
+    intent_data: Optional[dict] = None,
 ) -> str:
+    """
+    Sinh câu trả lời rule-based (fallback khi Gemini không khả dụng).
+    Nhận biết intent để cá nhân hóa câu trả lời.
+    """
+    from ai_app.services.intent_engine import format_budget_text
+
     all_products = rag_context + kb_context
 
-    # Không tìm được kết quả nào
     if not all_products:
         return (
             f"Xin lỗi bạn, tôi chưa tìm thấy sản phẩm nào phù hợp với «{query}». "
             "Bạn thử dùng từ khoá khác hoặc duyệt qua danh mục sản phẩm nhé! 🔍"
         )
 
-    # Tên 3 sản phẩm đầu tiên
-    top_names = [
-        p["name"] for p in all_products[:MAX_RECOMMEND_IN_REPLY] if p.get("name")
-    ]
+    top_names = [p["name"] for p in all_products[:MAX_RECOMMEND_IN_REPLY] if p.get("name")]
     rag_count = len(rag_context)
+    intent    = intent_data.get("intent", "general") if intent_data else "general"
+    budget    = intent_data.get("budget", {})         if intent_data else {}
 
-    parts = [
-        f"Dựa trên yêu cầu «{query}», tôi tìm được {rag_count} sản phẩm phù hợp."
-    ]
-    if top_names:
-        parts.append(f"Nổi bật nhất: {', '.join(top_names)}.")
+    parts: List[str] = []
 
-    # Call-to-action theo intent
-    query_lower = query.lower()
-    if any(kw in query_lower for kw in ["mua", "giá", "rẻ", "tốt nhất", "so sánh", "bao nhiêu"]):
+    if intent == "greeting":
+        return "Xin chào! 👋 Tôi là TechNova Assistant. Bạn đang tìm mẫu sản phẩm nào? Tôi có thể tư vấn laptop, điện thoại, sách và nhiều hơn nữa! 😊"
+
+    elif intent == "price_filter":
+        budget_text = format_budget_text(budget)
+        parts.append(f"Với ngân sách {budget_text}, tôi tìm được {rag_count} sản phẩm phù hợp!")
+        if top_names:
+            parts.append(f"Nổi bật nhất: **{top_names[0]}**.")
         parts.append("Xem chi tiết giá và thông số bên dưới để chọn sản phẩm tốt nhất nhé! 💰")
-    elif any(kw in query_lower for kw in ["gợi ý", "recommend", "nên mua", "tư vấn", "chọn"]):
-        parts.append("Đây là những gợi ý được cá nhân hóa riêng cho bạn! 🎯")
-    elif any(kw in query_lower for kw in ["tìm", "search", "có không", "bán"]):
-        parts.append("Dưới đây là kết quả tìm kiếm phù hợp nhất! 🛒")
+
+    elif intent == "brand_filter":
+        brands = intent_data.get("brands", []) if intent_data else []
+        brand_text = ", ".join(b.upper() for b in brands) if brands else ""
+        parts.append(f"Đây là các sản phẩm {brand_text} tìm thấy trong kho!")
+        if top_names:
+            parts.append(f"Gợi ý hàng đầu: **{top_names[0]}**.")
+        parts.append("Chọn sản phẩm bên dưới để xem chi tiết nhé! 🔍")
+
+    elif intent == "comparison":
+        parts.append(f"Tôi tìm thấy các sản phẩm liên quan để bạn so sánh.")
+        if top_names:
+            parts.append(f"Có thể so sánh: {', '.join(f'**{n}**' for n in top_names[:2])}.")
+        parts.append("Xem thông số chi tiết từng sản phẩm bên dưới! ⚖️")
+
+    elif intent == "spec_query":
+        specs = intent_data.get("specs_requested", []) if intent_data else []
+        spec_text = ", ".join(specs) if specs else "thông số"
+        parts.append(f"Về {spec_text}, đây là những sản phẩm phù hợp nhất!")
+        if top_names:
+            parts.append(f"Xem chi tiết **{top_names[0]}** bên dưới.")
+
+    elif intent == "recommendation":
+        parts.append(f"Dựa trên nhu cầu của bạn, đây là {rag_count} gợi ý cá nhân hóa! 🎯")
+        if top_names:
+            parts.append(f"Top lựa chọn: **{top_names[0]}**.")
+        parts.append("Đây là những sản phẩm được đánh giá cao nhất! ⭐")
+
     else:
+        parts.append(f"Tìm thấy {rag_count} sản phẩm phù hợp với «{query}».")
+        if top_names:
+            parts.append(f"Nổi bật: {', '.join(top_names)}.")
         parts.append("Xem danh sách sản phẩm bên dưới nhé! 👇")
 
     return " ".join(parts)
+
+
+def _build_reply(
+    query: str,
+    rag_context: List[dict],
+    kb_context: List[dict],
+    intent_data: Optional[dict] = None,
+) -> str:
+    """
+    Sinh câu trả lời thông minh:
+      - Nếu Gemini khả dụng → dùng Gemini với context sản phẩm
+      - Fallback → rule-based reply theo intent
+
+    Args:
+        query:       Câu hỏi gốc của người dùng.
+        rag_context: Sản phẩm từ ChromaDB vector search.
+        kb_context:  Sản phẩm từ Neo4j KB Graph.
+        intent_data: Dict intent từ intent_engine.detect_intent().
+
+    Returns:
+        Chuỗi câu trả lời tiếng Việt.
+    """
+    all_products = rag_context + kb_context
+
+    # ── Gemini path ──────────────────────────────────────────────────────────
+    if config.gemini_available and config.gemini_model is not None:
+        try:
+            intent    = intent_data.get("intent", "general") if intent_data else "general"
+            budget    = intent_data.get("budget", {})         if intent_data else {}
+            brands    = intent_data.get("brands", [])         if intent_data else []
+            category  = intent_data.get("category")           if intent_data else None
+
+            from ai_app.services.intent_engine import format_budget_text
+
+            # Xây dựng context sản phẩm
+            product_context = _build_product_context(all_products, max_products=5)
+
+            # Xây dựng prompt
+            intent_hint = {
+                "greeting":        "Người dùng đang chào hỏi, hãy phản hồi thân thiện và hỏi nhu cầu.",
+                "price_filter":    f"Người dùng tìm sản phẩm với ngân sách {format_budget_text(budget)}.",
+                "brand_filter":    f"Người dùng muốn xem sản phẩm của thương hiệu: {', '.join(brands).upper()}.",
+                "comparison":      "Người dùng muốn so sánh các sản phẩm.",
+                "spec_query":      f"Người dùng hỏi về thông số kỹ thuật: {', '.join(intent_data.get('specs_requested', []) if intent_data else [])}.",
+                "recommendation":  "Người dùng muốn được gợi ý sản phẩm phù hợp nhất.",
+                "category":        f"Người dùng duyệt danh mục: {category or 'không xác định'}.",
+                "general":         "Người dùng đang tìm kiếm sản phẩm chung.",
+            }.get(intent, "Người dùng tìm kiếm sản phẩm.")
+
+            if all_products:
+                prompt = (
+                    f"Câu hỏi của khách hàng: \"{query}\"\n\n"
+                    f"Ngữ cảnh ý định: {intent_hint}\n\n"
+                    f"Sản phẩm tìm thấy trong cửa hàng TechNova:\n{product_context}\n\n"
+                    f"Hãy trả lời câu hỏi của khách hàng một cách thân thiện, tự nhiên (2-3 câu), "
+                    f"đề cập đến 1-2 sản phẩm nổi bật nhất. KHÔNG liệt kê hết danh sách — "
+                    f"chỉ tổng hợp và tư vấn ngắn gọn."
+                )
+            else:
+                prompt = (
+                    f"Câu hỏi của khách hàng: \"{query}\"\n\n"
+                    f"Ngữ cảnh: {intent_hint}\n\n"
+                    f"Không tìm thấy sản phẩm phù hợp trong kho TechNova. "
+                    f"Hãy xin lỗi lịch sự và gợi ý khách hàng thử tìm kiếm với từ khóa khác."
+                )
+
+            response = config.gemini_model.generate_content(prompt)
+            reply_text = response.text.strip()
+            if reply_text:
+                print(f"[GEMINI] Reply generated successfully ({len(reply_text)} chars).")
+                return reply_text
+        except Exception as exc:
+            print(f"[GEMINI] Reply generation failed, using fallback: {exc}")
+
+    # ── Fallback rule-based ──────────────────────────────────────────────────
+    return _build_reply_fallback(query, rag_context, kb_context, intent_data)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

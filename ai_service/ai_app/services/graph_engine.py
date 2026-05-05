@@ -174,6 +174,11 @@ def build_kb_graph() -> dict:
 
         # 8. Upsert :User nodes + behavior relationships
         behavior_count = 0
+        
+        # Drop rows with NaN in critical columns
+        if not df.empty:
+            df = df.dropna(subset=["user_id", "product_id"])
+            
         for _, row in df.iterrows():
             rel = ACTION_TO_REL.get(str(row["action"]), "VIEWED")
             session.run(

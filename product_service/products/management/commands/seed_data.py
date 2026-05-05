@@ -117,6 +117,46 @@ class Command(BaseCommand):
                 target_id = ids[i]
                 image_url = f"https://images.unsplash.com/photo-{target_id}?auto=format&fit=crop&q=80&w=600"
                 
+                # Default attributes
+                attrs = {"series": "Elite", "warranty": "2 Years"}
+                
+                if slug == 'laptop':
+                    attrs["ram"] = random.choice(["8GB", "16GB", "32GB"])
+                    attrs["chip"] = random.choice(["M2", "M3", "Intel Core i7", "Intel Core i9", "Ryzen 7"])
+                    attrs["storage"] = random.choice(["512GB", "1TB SSD"])
+                    attrs["screen"] = random.choice(["13.3 inch", "14 inch", "15.6 inch", "16 inch"])
+                elif slug == 'mobile':
+                    attrs["ram"] = random.choice(["8GB", "12GB", "16GB"])
+                    attrs["chip"] = random.choice(["A16 Bionic", "A17 Pro", "Snapdragon 8 Gen 2", "Snapdragon 8 Gen 3"])
+                    attrs["storage"] = random.choice(["128GB", "256GB", "512GB", "1TB"])
+                    attrs["camera"] = random.choice(["48MP", "50MP", "200MP", "12MP"])
+                elif slug == 'smartwatch':
+                    attrs["screen"] = random.choice(["1.2 inch AMOLED", "1.4 inch Retina", "1.5 inch OLED"])
+                    attrs["battery"] = random.choice(["2 ngày", "7 ngày", "14 ngày"])
+                    attrs["waterproof"] = random.choice(["5ATM", "IP68"])
+                elif slug == 'tablet':
+                    attrs["ram"] = random.choice(["4GB", "8GB", "16GB"])
+                    attrs["storage"] = random.choice(["64GB", "128GB", "256GB", "512GB"])
+                    attrs["screen"] = random.choice(["10.2 inch", "11 inch", "12.9 inch"])
+                    attrs["chip"] = random.choice(["M2", "Snapdragon 8 Gen 2", "A14 Bionic"])
+                elif slug in ['male-fashion', 'female-fashion', 'shoes']:
+                    attrs["size"] = random.choice(["S", "M", "L", "XL", "39", "40", "41", "42"])
+                    attrs["material"] = random.choice(["Cotton", "Leather", "Polyester", "Linen", "Canvas"])
+                    attrs["color"] = random.choice(["Black", "White", "Navy", "Beige"])
+                    attrs.pop("warranty", None)
+                elif slug == 'books':
+                    attrs["author"] = random.choice(["John Doe", "Jane Smith", "Robert Kiyosaki", "Yuval Noah Harari"])
+                    attrs["publisher"] = random.choice(["NXB Trẻ", "NXB Kim Đồng", "Penguin Books", "HarperCollins"])
+                    attrs["pages"] = random.randint(150, 800)
+                    attrs.pop("warranty", None)
+                elif slug == 'home-appliances':
+                    attrs["power"] = random.choice(["500W", "1000W", "1500W", "2000W"])
+                    attrs["capacity"] = random.choice(["1.5L", "2L", "5L", "9kg", "300L"])
+                    attrs["voltage"] = "220V/50Hz"
+                elif slug == 'tech-accessories':
+                    attrs["connection"] = random.choice(["Bluetooth 5.0", "Wireless 2.4GHz", "Wired USB", "Type-C"])
+                    attrs["color"] = random.choice(["Black", "White", "Silver"])
+
                 objs.append(Product(
                     catalog=cat,
                     name=names[i],
@@ -124,7 +164,7 @@ class Command(BaseCommand):
                     stock=random.randint(5, 50),
                     description=f"Experience excellence with {names[i]}. Part of our exclusive {cat.name} collection.",
                     image_url=image_url,
-                    specific_attributes={"series": "Elite", "warranty": "2 Years"}
+                    specific_attributes=attrs
                 ))
 
         Product.objects.bulk_create(objs)

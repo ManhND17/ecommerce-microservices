@@ -3,14 +3,121 @@ import requests
 import json
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import SearchLog, InteractionLog, CartItem
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 # Service URLs
-USER_SERVICE_URL = "http://user-service:8001/api/user/"
-PRODUCT_SERVICE_URL = "http://product-service:8008/api/products/"
+USER_SERVICE_URL     = "http://user-service:8001/api/user/"
+PRODUCT_SERVICE_URL  = "http://product-service:8008/api/products/"
 ORDER_SERVICE_URL    = "http://order-service:8003/api/"
 PAYMENT_SERVICE_URL  = "http://payment-service:8004/api/"
 SHIPMENT_SERVICE_URL = "http://shipment-service:8005/api/"
+CART_SERVICE_URL     = "http://cart-service:8007/api/"
+BEHAVIOR_SERVICE_URL = "http://behavior-service:8009/api/logs/"
+
+def get_client_info(request):
+    if not request.session.session_key:
+        request.session.create()
+    session_id = request.session.session_key
+
+    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+    if any(m in user_agent for m in ['mobile', 'android', 'iphone', 'ipod']):
+        device = 'Mobile'
+    elif any(t in user_agent for t in ['tablet', 'ipad']):
+        device = 'Tablet'
+    else:
+        device = 'Desktop'
+
+    region = request.META.get('HTTP_ACCEPT_LANGUAGE', 'vi')[:2].upper()
+    if not region or region == 'VI':
+        region = 'VN'
+    
+    return {
+        'session_id': session_id,
+        'device': device,
+        'region': region
+    }
+
+
+def _cart_fetch(user_id):
+    """Lấy giỏ hàng từ cart_service, trả về dict {cart_key: item}."""
+    try:
+        resp = requests.get(f"{CART_SERVICE_URL}cart/", params={'user_id': user_id}, timeout=3)
+        if resp.status_code == 200:
+            db_cart = {}
+            for item in resp.json():
+                key = f"{item['product_type']}_{item['product_id']}"
+                if item.get('size'):
+                    key += f"_{item['size']}"
+                db_cart[key] = {
+                    'id': item['product_id'],
+                    'type': item['product_type'],
+                    'name': item['product_name'],
+                    'price': item['price'],
+                    'qty': item['quantity'],
+                    'size': item.get('size', ''),
+                    '_db_pk': item['id'],
+                }
+            return db_cart
+    except Exception as e:
+        print(f"[cart_service] fetch error: {e}")
+    return {}
+
+
+def _cart_upsert(user_id, product_id, product_type, product_name, price, quantity, size=''):
+    """Upsert một item vào cart_service."""
+    try:
+        requests.post(f"{CART_SERVICE_URL}cart/items/", json={
+            'user_id': user_id,
+            'product_id': product_id,
+            'product_type': product_type,
+            'product_name': product_name,
+            'price': price,
+            'quantity': quantity,
+            'size': size or '',
+        }, timeout=3)
+    except Exception as e:
+        print(f"[cart_service] upsert error: {e}")
+
+
+def _cart_update_qty(user_id, product_id, product_type, quantity, size=''):
+    """Cập nhật số lượng item theo composite key."""
+    try:
+        # Tìm pk trước
+        resp = requests.get(f"{CART_SERVICE_URL}cart/", params={'user_id': user_id}, timeout=3)
+        if resp.status_code == 200:
+            for item in resp.json():
+                if (item['product_id'] == str(product_id)
+                        and item['product_type'] == product_type
+                        and item.get('size', '') == (size or '')):
+                    requests.patch(
+                        f"{CART_SERVICE_URL}cart/items/{item['id']}/",
+                        json={'quantity': quantity}, timeout=3
+                    )
+                    return
+    except Exception as e:
+        print(f"[cart_service] update_qty error: {e}")
+
+
+def _cart_delete_item(user_id, product_id, product_type, size=''):
+    """Xóa item khỏi cart_service theo composite key."""
+    try:
+        requests.delete(f"{CART_SERVICE_URL}cart/items/by-key/", params={
+            'user_id': user_id,
+            'product_id': product_id,
+            'product_type': product_type,
+            'size': size or '',
+        }, timeout=3)
+    except Exception as e:
+        print(f"[cart_service] delete error: {e}")
+
+
+def _cart_clear(user_id):
+    """Xóa toàn bộ giỏ hàng của user trong cart_service."""
+    try:
+        requests.delete(f"{CART_SERVICE_URL}cart/clear/", params={'user_id': user_id}, timeout=3)
+    except Exception as e:
+        print(f"[cart_service] clear error: {e}")
 
 # AI Service Endpoints
 AI_BASE_URL = "http://ai-service:8006/api/"
@@ -42,8 +149,8 @@ def normalize_products(products):
         # Clone để tránh side effects
         item = p.copy()
         
-        # Ánh xạ catalog_slug -> type
-        item['type'] = p.get('catalog_slug', 'unknown')
+        # Ánh xạ catalog_slug hoặc category -> type
+        item['type'] = p.get('catalog_slug') or p.get('category') or 'unknown'
         
         # Phẳng hóa các thuộc tính đặc tả (specific_attributes)
         attrs = p.get('specific_attributes', {})
@@ -57,7 +164,7 @@ def normalize_products(products):
             item['name'] = item['title']
         if 'brand' not in item:
             # Ước lượng brand từ specific_attributes hoặc name if any
-            item['brand'] = attrs.get('brand', 'N/A')
+            item['brand'] = attrs.get('brand', '')
             
         normalized.append(item)
     return normalized
@@ -104,10 +211,12 @@ def search_view(request):
     search_results_raw = fetch_data(PRODUCT_SERVICE_URL, {'search': q})
     products = normalize_products(search_results_raw)
     
-    # Log search behavior
+    # Log search behavior to behavior_service
     try:
         user_id = request.session.get('user_id')
-        SearchLog.objects.create(user_id=user_id, query_text=q)
+        client_info = get_client_info(request)
+        payload = {'user_id': user_id, 'query_text': q, **client_info}
+        requests.post(f"{BEHAVIOR_SERVICE_URL}search/", json=payload, timeout=1)
     except Exception as e:
         print(f"Error logging search: {e}")
 
@@ -158,19 +267,25 @@ def login_view(request):
                 # Nếu là Customer, thực hiện logic khôi phục giỏ hàng
                 user_id = data.get('id')
                 session_cart = request.session.get('cart', {})
-                db_cart_items = CartItem.objects.filter(user_id=user_id)
-                db_cart = {f"{item.product_type}_{item.product_id}{'_' + item.size if item.size else ''}": {
-                    'id': item.product_id, 'type': item.product_type, 'name': item.product_name,
-                    'price': item.price, 'qty': item.quantity, 'size': item.size
-                } for item in db_cart_items}
+                # Lấy giỏ hàng đã lưu từ cart_service
+                db_cart = _cart_fetch(user_id)
+                # Merge session_cart vào db_cart
                 for key, item in session_cart.items():
-                    if key in db_cart: db_cart[key]['qty'] += item['qty']
-                    else: db_cart[key] = item
+                    if key in db_cart:
+                        db_cart[key]['qty'] += item['qty']
+                    else:
+                        db_cart[key] = item
                 request.session['cart'] = db_cart
+                # Đồng bộ ngược lại cart_service
                 for key, item in db_cart.items():
-                    CartItem.objects.update_or_create(
-                        user_id=user_id, product_id=item['id'], product_type=item['type'], size=item.get('size', ''),
-                        defaults={'product_name': item['name'], 'price': item['price'], 'quantity': item['qty']}
+                    _cart_upsert(
+                        user_id=user_id,
+                        product_id=item['id'],
+                        product_type=item['type'],
+                        product_name=item['name'],
+                        price=item['price'],
+                        quantity=item['qty'],
+                        size=item.get('size', ''),
                     )
 
                 return render(request, 'gateway/login_success.html', {
@@ -207,8 +322,64 @@ def logout_view(request):
     messages.success(request, 'Đã đăng xuất thành công.')
     return redirect('login')
 
+def profile_view(request):
+    """Trang thông tin cá nhân của người dùng."""
+    if not request.session.get('user_id'):
+        return redirect('login')
+
+    token = request.session.get('access_token')
+    if not token:
+        return redirect('login')
+        
+    headers = {'Authorization': f'Bearer {token}'}
+    url = f"{USER_SERVICE_URL}profile/"
+    
+    if request.method == 'POST':
+        data = {
+            'email': request.POST.get('email', ''),
+            'full_name': request.POST.get('full_name', ''),
+            'phone': request.POST.get('phone', ''),
+            'address': request.POST.get('address', '')
+        }
+        try:
+            resp = requests.patch(url, json=data, headers=headers, timeout=5)
+            if resp.status_code in [200, 204]:
+                messages.success(request, 'Cập nhật thông tin thành công.')
+                # Cập nhật username trong session nếu cần
+                user_data = resp.json()
+                if 'username' in user_data:
+                    request.session['username'] = user_data['username']
+            else:
+                messages.error(request, f"Lỗi cập nhật: {resp.text}")
+        except Exception as e:
+            messages.error(request, f"Lỗi kết nối: {e}")
+        return redirect('profile')
+
+    user_info = {}
+    try:
+        resp = requests.get(url, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            user_info = resp.json()
+        elif resp.status_code == 401:
+            request.session.flush()
+            return redirect('login')
+    except Exception as e:
+        print(f"Error fetching profile: {e}")
+
+    return render(request, 'gateway/profile.html', {'user_info': user_info})
+
+
 def cart_view(request):
-    cart = request.session.get('cart', {})
+    user_id = request.session.get('user_id')
+    
+    # Nếu đã đăng nhập, ưu tiên lấy dữ liệu từ cart_service để đảm bảo đồng nhất với DB
+    if user_id:
+        cart = _cart_fetch(user_id)
+        request.session['cart'] = cart
+        request.session.modified = True
+    else:
+        cart = request.session.get('cart', {})
+        
     if request.method == 'POST':
         action = request.POST.get('action')
         product_id = request.POST.get('product_id')
@@ -250,16 +421,28 @@ def cart_view(request):
             # Tracking and Persistence
             try:
                 user_id = request.session.get('user_id')
-                InteractionLog.objects.create(user_id=user_id, product_id=str(product_id), 
-                                               product_type=product_type, action_type='add_to_cart')
+                client_info = get_client_info(request)
+                # Log to behavior_service
+                requests.post(f"{BEHAVIOR_SERVICE_URL}interaction/", json={
+                    'user_id': user_id,
+                    'product_id': str(product_id),
+                    'product_type': product_type,
+                    'action_type': 'add_to_cart',
+                    **client_info
+                }, timeout=1)
                 
                 if user_id:
-                    CartItem.objects.update_or_create(
-                        user_id=user_id, product_id=product_id, product_type=product_type, size=product_size,
-                        defaults={'product_name': product_name, 'price': price, 'quantity': cart[cart_key]['qty']}
+                    _cart_upsert(
+                        user_id=user_id,
+                        product_id=product_id,
+                        product_type=product_type,
+                        product_name=product_name,
+                        price=price,
+                        quantity=cart[cart_key]['qty'],
+                        size=product_size,
                     )
             except Exception: pass
-            
+
         elif action == 'update':
             cart_key_to_update = request.POST.get('cart_key')
             new_qty_str = request.POST.get('qty', '1')
@@ -272,16 +455,18 @@ def cart_view(request):
                 cart[cart_key_to_update]['qty'] = new_qty
                 request.session['cart'] = cart
                 request.session.modified = True
-                
                 # Persistence
                 try:
                     user_id = request.session.get('user_id')
                     if user_id:
                         item = cart[cart_key_to_update]
-                        CartItem.objects.filter(
-                            user_id=user_id, product_id=item['id'], 
-                            product_type=item['type'], size=item.get('size', '')
-                        ).update(quantity=new_qty)
+                        _cart_update_qty(
+                            user_id=user_id,
+                            product_id=item['id'],
+                            product_type=item['type'],
+                            quantity=new_qty,
+                            size=item.get('size', ''),
+                        )
                 except Exception: pass
 
         elif action == 'remove':
@@ -292,15 +477,16 @@ def cart_view(request):
                 request.session['cart'] = cart
                 request.session.modified = True
                 messages.success(request, 'Đã xóa sản phẩm khỏi giỏ hàng.')
-                
                 # Persistence
                 try:
                     user_id = request.session.get('user_id')
                     if user_id:
-                        CartItem.objects.filter(
-                            user_id=user_id, product_id=item_to_remove['id'], 
-                            product_type=item_to_remove['type'], size=item_to_remove.get('size', '')
-                        ).delete()
+                        _cart_delete_item(
+                            user_id=user_id,
+                            product_id=item_to_remove['id'],
+                            product_type=item_to_remove['type'],
+                            size=item_to_remove.get('size', ''),
+                        )
                 except Exception: pass
         return redirect('cart')
         
@@ -429,11 +615,48 @@ def product_detail_view(request, p_type, p_id):
             # Normalize single product
             normalized = normalize_products([product])[0]
             
+            # Map specific_attributes to Vietnamese
+            KEY_MAP = {
+                "ram": "Bộ nhớ RAM",
+                "chip": "Vi xử lý",
+                "storage": "Ổ cứng/Lưu trữ",
+                "screen": "Màn hình",
+                "battery": "Dung lượng pin",
+                "waterproof": "Chống nước",
+                "camera": "Camera",
+                "size": "Kích cỡ",
+                "material": "Chất liệu",
+                "color": "Màu sắc",
+                "author": "Tác giả",
+                "publisher": "Nhà xuất bản",
+                "pages": "Số trang",
+                "power": "Công suất",
+                "capacity": "Dung tích/Khối lượng",
+                "voltage": "Điện áp",
+                "connection": "Kết nối",
+                "series": "Dòng sản phẩm",
+                "warranty": "Bảo hành"
+            }
+            
+            if 'specific_attributes' in normalized and isinstance(normalized['specific_attributes'], dict):
+                formatted_attrs = {}
+                for k, v in normalized['specific_attributes'].items():
+                    formatted_attrs[KEY_MAP.get(k, k.title())] = v
+                normalized['display_attributes'] = formatted_attrs
+            else:
+                normalized['display_attributes'] = {}
+            
             # Log Interaction
             try:
                 user_id = request.session.get('user_id')
-                InteractionLog.objects.create(user_id=user_id, product_id=str(p_id), 
-                                               product_type=p_type, action_type='click')
+                client_info = get_client_info(request)
+                requests.post(f"{BEHAVIOR_SERVICE_URL}interaction/", json={
+                    'user_id': user_id,
+                    'product_id': str(p_id),
+                    'product_type': p_type,
+                    'action_type': 'click',
+                    **client_info
+                }, timeout=1)
             except Exception: pass
             
             return render(request, 'gateway/product_detail.html', {'p': normalized})
@@ -443,50 +666,52 @@ def product_detail_view(request, p_type, p_id):
     messages.error(request, 'Sản phẩm không tồn tại.')
     return redirect('home')
 
-def track_click_api(request):
-    return JsonResponse({'status': 'deprecated'})
-
-def export_analytics_view(request):
-    from django.db.models import Count
-    interactions = InteractionLog.objects.values('product_type', 'product_id', 'action_type').annotate(count=Count('id'))
-    searches = list(SearchLog.objects.order_by('-created_at')[:200].values_list('query_text', flat=True))
-    return JsonResponse({'interactions': list(interactions), 'recent_searches': searches})
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-
 @csrf_exempt
-def bulk_insert_interactions_api(request):
+def track_click_api(request):
+    """Lưu vết click qua behavior_service"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            logs = []
-            for item in data:
-                logs.append(InteractionLog(
-                    user_id=item.get('user_id'),
-                    product_id=str(item.get('product_id')),
-                    product_type=item.get('product_type'),
-                    action_type=item.get('action'),
-                    session_id=item.get('session_id'),
-                    device=item.get('device'),
-                    region=item.get('region'),
-                    # created_at is auto_now_add, but if we have specific timestamp from generator, 
-                    # we might need to set it if we alter auto_now_add.
-                    # Since auto_now_add ignores explicit values, we'll let it use current time for now,
-                    # or we can update it if needed. The AI model only cares about the sequence.
-                ))
-            InteractionLog.objects.bulk_create(logs, batch_size=1000)
-            return JsonResponse({'status': 'success', 'inserted': len(logs)})
+            data['user_id'] = request.session.get('user_id')
+            client_info = get_client_info(request)
+            data.update(client_info)
+            requests.post(f"{BEHAVIOR_SERVICE_URL}interaction/", json=data, timeout=1)
+            return JsonResponse({'status': 'ok'})
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+
+def export_analytics_view(request):
+    """Proxy tới behavior_service để xuất dữ liệu analytics cho AI"""
+    try:
+        resp = requests.get(f"{BEHAVIOR_SERVICE_URL}export/", timeout=5)
+        return JsonResponse(resp.json(), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def bulk_insert_interactions_api(request):
+    """Proxy tới behavior_service để lưu bulk interactions"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            resp = requests.post(f"{BEHAVIOR_SERVICE_URL}interactions/bulk/", json=data, timeout=5)
+            return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'POST required'}, status=405)
+
 
 def get_all_interactions_api(request):
-    logs = InteractionLog.objects.all().values(
-        'user_id', 'product_id', 'product_type', 'action_type',
-        'session_id', 'device', 'region', 'created_at'
-    )
-    return JsonResponse({'data': list(logs)})
+    """Proxy tới behavior_service để lấy danh sách tương tác"""
+    try:
+        resp = requests.get(f"{BEHAVIOR_SERVICE_URL}export/", timeout=5)
+        data = resp.json()
+        return JsonResponse({'data': data.get('interactions', [])})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -586,6 +811,7 @@ def payment_create_api(request):
     try:
         body = json.loads(request.body)
         body['user_id'] = user_id
+        body['method'] = 'vnpay'  # Luôn là vnpay khi gọi từ đây
         resp = requests.post(url, json=body, timeout=5)
         return JsonResponse(resp.json(), status=resp.status_code, safe=False)
     except requests.exceptions.Timeout:
@@ -665,6 +891,48 @@ def order_success_view(request):
         'payment_method': payment_method,
         'is_success': is_success,
     })
+
+
+def my_orders_view(request):
+    """Trang danh sách đơn hàng đã đặt của người dùng."""
+    if not request.session.get('user_id'):
+        return redirect('login')
+
+    user_id = request.session.get('user_id')
+    url = f"{ORDER_SERVICE_URL}orders/"
+    orders = []
+    try:
+        resp = requests.get(url, params={'user_id': user_id}, timeout=5)
+        if resp.status_code == 200:
+            orders = resp.json()
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+
+    return render(request, 'gateway/my_orders.html', {'orders': orders})
+
+
+def my_order_detail_view(request, order_id):
+    """Trang chi tiết đơn hàng đã đặt của người dùng."""
+    if not request.session.get('user_id'):
+        return redirect('login')
+
+    url = f"{ORDER_SERVICE_URL}orders/{order_id}/"
+    order = None
+    try:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            order = resp.json()
+            # Ensure it belongs to the current user
+            if str(order.get('user_id')) != str(request.session.get('user_id')):
+                order = None
+    except Exception as e:
+        print(f"Error fetching order {order_id}: {e}")
+
+    if not order:
+        messages.error(request, 'Không tìm thấy đơn hàng hoặc bạn không có quyền truy cập.')
+        return redirect('my_orders')
+
+    return render(request, 'gateway/my_order_detail.html', {'order': order})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -45,12 +45,16 @@
 
             <!-- Specifications Grid -->
             <div style="margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.8rem; border-left: 3px solid var(--primary); padding-left: 8px;">Thông số</h3>
+                <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.8rem; border-left: 3px solid var(--primary); padding-left: 8px;">Thông số kỹ thuật</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    {% for key, value in p.specific_attributes.items|slice:":6" %}
+                    {% for key, value in p.display_attributes.items %}
                     <div style="background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #f1f5f9;">
-                        <span style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; font-weight: 700;">{{ key }}</span>
-                        <span style="display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-main);">{{ value }}</span>
+                        <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; font-weight: 700;">{{ key }}</span>
+                        <span style="display: block; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">{{ value }}</span>
+                    </div>
+                    {% empty %}
+                    <div style="background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #f1f5f9; grid-column: span 2;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted);">Không có thông số chi tiết.</span>
                     </div>
                     {% endfor %}
                 </div>

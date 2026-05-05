@@ -1,19 +1,9 @@
 version: '3.8'
 
 services:
-  # ── INFRASTRUCTURE ──────────────────────────────────────────────────────────
-  rabbitmq:
-    image: rabbitmq:3.12-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   # ── MICROSERVICES ───────────────────────────────────────────────────────────
+
   api-gateway:
     build: .
     command: >
@@ -31,6 +21,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   user-service:
     build: .
@@ -52,6 +44,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   product-service:
     build: .
@@ -72,6 +66,27 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
+
+  cart-service:
+    build: .
+    command: >
+      sh -c "python cart_service/manage.py migrate &&
+             python cart_service/manage.py runserver 0.0.0.0:8007"
+    volumes:
+      - .:/app
+    ports:
+      - "8007:8007"
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=cart_db
+      - DB_USER=postgres
+      - DB_PASSWORD=123456
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+    networks:
+      - technova_net
 
   order-service:
     build: .
@@ -93,6 +108,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   order-consumer:
     build: .
@@ -107,6 +124,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   payment-service:
     build: .
@@ -130,6 +149,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   payment-consumer:
     build: .
@@ -144,6 +165,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   shipment-service:
     build: .
@@ -163,6 +186,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   shipment-consumer:
     build: .
@@ -177,6 +202,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    networks:
+      - technova_net
 
   ai-service:
     build:
@@ -188,13 +215,35 @@ services:
       - NEO4J_URI=bolt://neo4j:7687
       - PRODUCT_SERVICE_URL=http://product-service:8008/api/products/
       - CATALOG_SERVICE_URL=http://product-service:8008/api/catalogs/
-      - GATEWAY_ANALYTICS_URL=http://api-gateway:8000/api/analytics/export/
+      - BEHAVIOR_SERVICE_URL=http://behavior-service:8009/api/logs/export/
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:
       - ./ai_service:/app
       - ai_model_cache:/root/.cache
     depends_on:
       - rabbitmq
       - neo4j
+    networks:
+      - technova_net
+
+  behavior-service:
+    build: .
+    command: >
+      sh -c "python behavior_service/manage.py migrate &&
+             python behavior_service/manage.py runserver 0.0.0.0:8009"
+    volumes:
+      - .:/app
+    ports:
+      - "8009:8009"
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=behavior_db
+      - DB_USER=postgres
+      - DB_PASSWORD=123456
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+    networks:
+      - technova_net
 
   neo4j:
     image: neo4j:5.12
@@ -203,7 +252,26 @@ services:
       - NEO4J_AUTH=none
     volumes:
       - neo4j_data:/data
+    networks:
+      - technova_net
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - technova_net
 
 volumes:
   ai_model_cache:
   neo4j_data:
+
+networks:
+  technova_net:
+    driver: bridge

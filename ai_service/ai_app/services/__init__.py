@@ -23,6 +23,12 @@ from ai_app.services.recommender import (
     get_recommendations,
     get_chat_response,
 )
+from ai_app.services.intent_engine import (
+    detect_intent,
+    extract_budget,
+    extract_brands,
+    extract_category,
+)
 
 __all__ = [
     # data

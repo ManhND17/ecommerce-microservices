@@ -1,0 +1,187 @@
+{% extends 'gateway/base.html' %}
+{% block content %}
+<style>
+    .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start; }
+    .section-title { font-size: 1.1rem; font-weight: 700; margin: 0 0 1.2rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.8rem; }
+    .info-row { display: flex; margin-bottom: 0.8rem; font-size: 0.95rem; }
+    .info-label { width: 140px; color: var(--text-muted); font-weight: 600; }
+    .info-value { flex: 1; font-weight: 600; color: var(--text-main); }
+    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid #f1f5f9; }
+    .item-row:last-child { border-bottom: none; }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .status-pending_payment { background: #fef3c7; color: #d97706; }
+    .status-preparing { background: #dbeafe; color: #2563eb; }
+    .status-prepared { background: #e0e7ff; color: #4f46e5; }
+    .status-shipping { background: #fef08a; color: #ca8a04; }
+    .status-delivered { background: #d1fae5; color: #059669; }
+    .status-cancelled { background: #fee2e2; color: #dc2626; }
+    
+    @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="container animate-up" style="padding-top: 2rem; padding-bottom: 4rem;">
+    <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 0.3rem;">Chi tiết đơn hàng #{{ order.id }}</h1>
+            <p style="color: var(--text-muted); margin: 0;">Ngày đặt: {{ order.created_at|slice:":10" }} {{ order.created_at|slice:"11:16" }}</p>
+        </div>
+        <a href="{% url 'my_orders' %}" class="btn" style="background: rgba(15, 23, 42, 0.05); color: var(--text-main);">
+            ⬅ Quay lại danh sách
+        </a>
+    </div>
+
+    <div class="detail-grid">
+        <!-- Cột trái: Sản phẩm -->
+        <div class="glass-card" style="padding: 2rem;">
+            <div class="section-title">🛍️ Sản phẩm đã mua</div>
+            
+            {% for item in order.items %}
+            <div class="item-row">
+                <div>
+                    <div style="font-weight: 700; font-size: 1rem; margin-bottom: 4px;">Mã sản phẩm: {{ item.product_id }}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">Số lượng: {{ item.quantity }} × {{ item.unit_price|floatformat:0 }} ₫</div>
+                </div>
+                <div style="font-weight: 800; color: var(--text-main); font-size: 1.1rem;">
+                    <!-- Since Django templates do not easily allow multiplication without custom tags, 
+                         we will render a span with dataset and calculate via JS below -->
+                    <span class="item-subtotal" data-qty="{{ item.quantity }}" data-price="{{ item.unit_price }}"></span>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px dashed #e2e8f0;">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px; color: var(--text-muted); font-size: 1rem;">
+                    <span>Tạm tính</span>
+                    <span style="font-weight: 600;">{{ order.total_price|floatformat:0 }} ₫</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px; color: var(--text-muted); font-size: 1rem;">
+                    <span>Phí vận chuyển</span>
+                    <span style="color: #059669; font-weight: 600;">Miễn phí</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding-top: 12px; border-top: 2px solid #f1f5f9; font-size: 1.25rem; font-weight: 800; color: var(--primary);">
+                    <span>Tổng cộng</span>
+                    <span>{{ order.total_price|floatformat:0 }} ₫</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột phải: Thông tin -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Trạng thái -->
+            <div class="glass-card" style="padding: 2rem;">
+                <div class="section-title">ℹ️ Trạng thái đơn hàng</div>
+                <div class="status-badge status-{{ order.status }}" style="margin-bottom: 1rem;">
+                    {% if order.status == 'pending_payment' %}Chờ thanh toán
+                    {% elif order.status == 'preparing' %}Đang chuẩn bị hàng
+                    {% elif order.status == 'prepared' %}Đã chuẩn bị hàng
+                    {% elif order.status == 'shipping' %}Đang giao hàng
+                    {% elif order.status == 'delivered' %}Đã giao hàng
+                    {% elif order.status == 'cancelled' %}Đã hủy
+                    {% else %}{{ order.status }}
+                    {% endif %}
+                </div>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">
+                    Phương thức thanh toán:<br>
+                    <strong style="color: var(--text-main);">
+                        {% if order.payment_method == 'vnpay' %}Thanh toán VNPay
+                        {% elif order.payment_method == 'cod' %}Thanh toán khi nhận hàng (COD)
+                        {% else %}{{ order.payment_method }}
+                        {% endif %}
+                    </strong>
+                </p>
+
+                {% if order.payment_method == 'vnpay' and order.status == 'pending_payment' %}
+                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #e2e8f0;">
+                    <button id="btn-pay-vnpay" onclick="payVnpay({{ order.id }}, {{ order.total_price }})" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span id="btn-pay-text">💳 Thanh toán ngay qua VNPay</span>
+                        <span id="btn-pay-spinner" style="display:none;">⏳ Đang xử lý...</span>
+                    </button>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 8px; margin-bottom: 0;">Bạn sẽ được chuyển đến cổng thanh toán VNPay an toàn</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Giao hàng -->
+            <div class="glass-card" style="padding: 2rem;">
+                <div class="section-title">📍 Địa chỉ nhận hàng</div>
+                
+                <div class="info-row">
+                    <div class="info-label">Người nhận:</div>
+                    <div class="info-value">{{ order.receiver_name|default:"-" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Số điện thoại:</div>
+                    <div class="info-value">{{ order.receiver_phone|default:"-" }}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Địa chỉ:</div>
+                    <div class="info-value" style="line-height: 1.4;">{{ order.receiver_address|default:"-" }}</div>
+                </div>
+                {% if order.order_note %}
+                <div class="info-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #e2e8f0;">
+                    <div class="info-label">Ghi chú:</div>
+                    <div class="info-value" style="font-style: italic;">{{ order.order_note }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('.item-subtotal').forEach(function(el) {
+            let qty = parseFloat(el.getAttribute('data-qty'));
+            let price = parseFloat(el.getAttribute('data-price'));
+            let subtotal = qty * price;
+            el.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(subtotal);
+        });
+    });
+
+    function payVnpay(orderId, amount) {
+        const btn = document.getElementById('btn-pay-vnpay');
+        const text = document.getElementById('btn-pay-text');
+        const spinner = document.getElementById('btn-pay-spinner');
+        btn.disabled = true;
+        text.style.display = 'none';
+        spinner.style.display = 'inline';
+
+        fetch('/api/payments/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                order_id: orderId,
+                amount: parseInt(amount)
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.vnpay_url) {
+                window.location.href = data.vnpay_url;
+            } else {
+                alert('Không thể tạo liên kết thanh toán: ' + (data.error || 'Lỗi không xác định'));
+                btn.disabled = false;
+                text.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối. Vui lòng thử lại.');
+            btn.disabled = false;
+            text.style.display = 'inline';
+            spinner.style.display = 'none';
+        });
+    }
+</script>
+{% endblock %}

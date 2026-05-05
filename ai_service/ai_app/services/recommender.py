@@ -270,61 +270,144 @@ def get_recommendations(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Orchestrator: Chat với RAG (Có tích hợp Ngữ cảnh/Memory)
+# Orchestrator: Chat với RAG (Có tích hợp Ngữ cảnh/Memory + Intent + Gemini)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Cache bộ nhớ RAM lưu trữ query cuối cùng theo session_id
+# Cache bộ nhớ RAM lưu trữ lịch sử hội thoại theo session_id
+# Format: {session_id: {"queries": [str], "intents": [str], "last_query": str}}
 _CHAT_MEMORY: dict = {}
+_MEMORY_MAX_TURNS: int = 5  # Lưu tối đa 5 lượt hội thoại
 
-def get_chat_response(query: str, user_id: Optional[int] = None, session_id: Optional[str] = None) -> dict:
+
+def _get_session_context(session_id: Optional[str]) -> str:
     """
-    Hàm chat đầy đủ — kết hợp RAG + KB_Graph cá nhân hóa + sinh câu trả lời.
+    Lấy ngữ cảnh hội thoại tích lũy từ session memory.
 
-    Pipeline:
-      1. RAG: vector search ChromaDB với query
-      2. KB:  collaborative filtering từ Neo4j (nếu có user_id)
-      3. Merge: gộp và dedup, tối đa 8 sản phẩm
-      4. Reply: sinh câu trả lời tiếng Việt bằng _build_reply()
+    Returns:
+        Chuỗi tóm tắt các query trước đó để gộp vào search query.
+    """
+    if not session_id or session_id not in _CHAT_MEMORY:
+        return ""
+
+    mem = _CHAT_MEMORY[session_id]
+    queries = mem.get("queries", [])
+    if not queries:
+        return ""
+
+    # Lấy tối đa 3 query gần nhất để gộp context
+    recent = queries[-3:]
+    return " ".join(recent)
+
+
+def _update_session_memory(session_id: Optional[str], query: str, intent: str) -> None:
+    """Cập nhật memory hội thoại theo session."""
+    if not session_id:
+        return
+
+    if session_id not in _CHAT_MEMORY:
+        _CHAT_MEMORY[session_id] = {"queries": [], "intents": [], "last_query": ""}
+
+    mem = _CHAT_MEMORY[session_id]
+    mem["queries"].append(query)
+    mem["intents"].append(intent)
+    mem["last_query"] = query
+
+    # Giữ tối đa _MEMORY_MAX_TURNS lượt
+    if len(mem["queries"]) > _MEMORY_MAX_TURNS:
+        mem["queries"] = mem["queries"][-_MEMORY_MAX_TURNS:]
+        mem["intents"] = mem["intents"][-_MEMORY_MAX_TURNS:]
+
+
+def get_chat_response(
+    query: str,
+    user_id: Optional[int] = None,
+    session_id: Optional[str] = None,
+) -> dict:
+    """
+    Hàm chat đầy đủ — Intent Detection + RAG + KB_Graph + Gemini Reply.
+
+    Pipeline nâng cấp:
+      0. Intent Detection:    Phân tích ý định từ query
+      1. Context Enrichment:  Gộp ngữ cảnh hội thoại từ session memory
+      2. RAG:                 Vector search ChromaDB với query đã làm giàu
+      3. KB:                  Collaborative filtering từ Neo4j (nếu có user_id)
+      4. Budget Filter:       Lọc sản phẩm theo ngân sách (nếu intent=price_filter)
+      5. Merge + dedup:       Gộp 2 nguồn, tối đa 8 sản phẩm
+      6. Gemini Reply:        Sinh câu trả lời thông minh (fallback rule-based)
+      7. Update Memory:       Lưu query + intent vào session memory
 
     Args:
-        query:   Câu hỏi của người dùng.
-        user_id: ID người dùng (tùy chọn, để cá nhân hóa KB query).
+        query:      Câu hỏi của người dùng.
+        user_id:    ID người dùng (tùy chọn, để cá nhân hóa KB query).
+        session_id: ID phiên hội thoại (tùy chọn, để duy trì ngữ cảnh).
 
     Returns:
         dict:
           {
             "query":           str,
-            "response":        str,   # câu trả lời tự nhiên
-            "recommendations": List[dict],
+            "response":        str,          # Câu trả lời Gemini/fallback
+            "recommendations": List[dict],   # Sản phẩm gợi ý
             "rag_count":       int,
             "kb_count":        int,
+            "intent":          str,          # Intent đã phát hiện
+            "intent_label":    str,          # Label tiếng Việt cho UI
+            "gemini_used":     bool,         # Có dùng Gemini không
           }
     """
-    # 0. Nối ngữ cảnh hội thoại cũ (nếu có session_id)
-    search_query = query
-    if session_id:
-        last_query = _CHAT_MEMORY.get(session_id, "")
-        if last_query:
-            # Gộp lại: "laptop m1" + "nó có tốt không"
-            search_query = f"{last_query} {query}"
-        
-        # Lưu lại query hỗn hợp làm ngữ cảnh cho câu tiếp theo
-        # Ở môi trường thật nên dùng redis + TTL để reset, ở đây dùng tạm dict
-        _CHAT_MEMORY[session_id] = search_query
+    from ai_app.services.intent_engine import detect_intent, filter_by_budget
+    from ai_app import config as cfg
 
-    # 1. RAG retrieval (dùng chuỗi từ khoá đã gộp ngữ cảnh)
-    rag_results = _rag_retrieve(search_query, n=6)
+    # ── 0. Intent Detection ──────────────────────────────────────────────────
+    intent_data = detect_intent(query)
+    intent      = intent_data.get("intent", "general")
+    budget      = intent_data.get("budget", {})
+    has_budget  = any(v is not None for v in budget.values())
 
-    # 2. KB_Graph — chỉ lấy nếu có user_id (cá nhân hóa)
+    INTENT_LABELS = {
+        "greeting":       "👋 Chào hỏi",
+        "price_filter":   "💰 Tìm theo giá",
+        "brand_filter":   "🏷️ Theo thương hiệu",
+        "comparison":     "⚖️ So sánh",
+        "spec_query":     "🔧 Thông số kỹ thuật",
+        "recommendation": "🎯 Gợi ý cá nhân",
+        "category":       "📂 Theo danh mục",
+        "general":        "🔍 Tìm kiếm",
+    }
+    intent_label = INTENT_LABELS.get(intent, "🔍 Tìm kiếm")
+
+    # ── 1. Context Enrichment từ session memory ──────────────────────────────
+    ctx_str = _get_session_context(session_id)
+    search_query = f"{ctx_str} {query}".strip() if ctx_str else query
+
+    # ── 2. RAG retrieval ────────────────────────────────────────────────────
+    rag_results = _rag_retrieve(search_query, n=8)
+
+    # ── 3. KB_Graph (cá nhân hóa nếu có user_id) ────────────────────────────
     kb_results: List[dict] = []
     if user_id is not None:
         kb_results = query_kb_graph(user_id=user_id, limit=4)
 
-    # 3. Merge + dedup, giới hạn 8 sản phẩm cho chat
+    # Filter category từ KB nếu intent=category
+    if intent == "category" and intent_data.get("category"):
+        kb_cat = query_kb_graph(category=intent_data["category"], limit=4)
+        kb_results = _deduplicate(kb_results + kb_cat)
+
+    # ── 4. Budget Filter ─────────────────────────────────────────────────────
+    if has_budget and rag_results:
+        filtered_rag = filter_by_budget(rag_results, budget)
+        # Giữ bản gốc nếu filter quá nghiêm (< 2 kết quả)
+        if len(filtered_rag) >= 2:
+            rag_results = filtered_rag
+
+    # ── 5. Merge + dedup ────────────────────────────────────────────────────
     merged = _deduplicate(rag_results + kb_results)[:8]
 
-    # 4. Sinh câu trả lời
-    reply = _build_reply(query, rag_results, kb_results)
+    # ── 6. Sinh câu trả lời (Gemini hoặc fallback) ──────────────────────────
+    reply = _build_reply(query, rag_results, kb_results, intent_data)
+    gemini_used = cfg.gemini_available
+
+    # ── 7. Update session memory ─────────────────────────────────────────────
+    _update_session_memory(session_id, query, intent)
 
     return {
         "query":           query,
@@ -332,4 +415,8 @@ def get_chat_response(query: str, user_id: Optional[int] = None, session_id: Opt
         "recommendations": merged,
         "rag_count":       len(rag_results),
         "kb_count":        len(kb_results),
+        "intent":          intent,
+        "intent_label":    intent_label,
+        "gemini_used":     gemini_used,
     }
+

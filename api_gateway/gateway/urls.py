@@ -9,6 +9,7 @@ urlpatterns = [
     path('staff-login/', views.staff_login_view, name='staff_login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
+    path('profile/', views.profile_view, name='profile'),
     path('cart/', views.cart_view, name='cart'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('dashboard/product/<str:product_type>/', views.product_action_view, name='product_action'),
@@ -36,6 +37,8 @@ urlpatterns = [
     # ── Checkout & Order Result Pages ─────────────────────────────────────────
     path('checkout/', views.checkout_view, name='checkout'),
     path('order-success/', views.order_success_view, name='order_success'),
+    path('my-orders/', views.my_orders_view, name='my_orders'),
+    path('my-orders/<int:order_id>/', views.my_order_detail_view, name='my_order_detail'),
 
     # ── Shipment Service APIs ─────────────────────────────────────────────────
     path('api/shipments/', views.shipment_list_api, name='shipment_list_api'),

@@ -82,6 +82,14 @@ NEO4J_USER: str = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASS: str = os.getenv("NEO4J_PASS", "password123")
 """Mật khẩu Neo4j."""
 
+# ── Cấu hình Gemini AI ────────────────────────────────────────────────────────
+
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+"""Google Gemini API Key — lấy từ biến môi trường GEMINI_API_KEY."""
+
+GEMINI_MODEL_NAME: str = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+"""Tên model Gemini sử dụng (mặc định: gemini-2.5-flash)."""
+
 # ── Global Variables (Singleton) ──────────────────────────────────────────────
 # Được khởi tạo một lần trong init_services() và chia sẻ toàn bộ app.
 
@@ -108,6 +116,12 @@ encoders: Optional[Any] = None
 
 neo4j_driver: Optional[Any] = None
 """neo4j.GraphDatabase.Driver — kết nối Neo4j Knowledge Base Graph."""
+
+gemini_model: Optional[Any] = None
+"""google.generativeai.GenerativeModel — Gemini chat model để sinh câu trả lời thông minh."""
+
+gemini_available: bool = False
+"""True nếu Gemini API đã được khởi tạo thành công và sẵn sàng sử dụng."""
 
 
 # ── Hàm load nội bộ ───────────────────────────────────────────────────────────
@@ -220,3 +234,33 @@ def init_services() -> None:
         print("[CONFIG] Neo4j connected successfully.")
     except Exception as exc:
         print(f"[CONFIG] Neo4j connection failed (degraded mode): {exc}")
+
+    # 6. Gemini AI
+    global gemini_model, gemini_available
+    if GEMINI_API_KEY:
+        try:
+            import google.generativeai as genai  # type: ignore
+
+            genai.configure(api_key=GEMINI_API_KEY)
+            gemini_model = genai.GenerativeModel(
+                model_name=GEMINI_MODEL_NAME,
+                generation_config={
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "max_output_tokens": 512,
+                },
+                system_instruction=(
+                    "Bạn là TechNova Assistant — trợ lý tư vấn mua sắm thông minh cho cửa hàng "
+                    "công nghệ TechNova. Luôn trả lời bằng tiếng Việt, ngắn gọn (tối đa 3-4 câu), "
+                    "thân thiện và hữu ích. Tập trung vào việc tư vấn sản phẩm phù hợp với nhu cầu "
+                    "và ngân sách của khách hàng. Không bịa thông tin sản phẩm — chỉ dựa vào "
+                    "context được cung cấp."
+                ),
+            )
+            gemini_available = True
+            print(f"[CONFIG] Gemini AI ({GEMINI_MODEL_NAME}) initialized successfully.")
+        except Exception as exc:
+            print(f"[CONFIG] Gemini initialization failed (degraded mode): {exc}")
+            gemini_available = False
+    else:
+        print("[CONFIG] GEMINI_API_KEY not set — Gemini disabled, using rule-based fallback.")

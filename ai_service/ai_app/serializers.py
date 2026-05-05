@@ -182,10 +182,13 @@ class ChatResponseSerializer(serializers.Serializer):
 
     Fields:
         query           (str):              Câu hỏi đầu vào gốc.
-        response        (str):              Câu trả lời tự nhiên do hệ thống tổng hợp.
+        response        (str):              Câu trả lời (Gemini hoặc rule-based fallback).
         recommendations (list[Product]):    Danh sách sản phẩm gợi ý (tối đa 8).
         rag_count       (int):              Số sản phẩm tìm từ ChromaDB (RAG).
         kb_count        (int):              Số sản phẩm tìm từ Neo4j (KB_Graph).
+        intent          (str):              Intent đã phát hiện (price_filter, comparison...).
+        intent_label    (str):              Nhãn hiển thị tiếng Việt cho UI.
+        gemini_used     (bool):             True nếu câu trả lời do Gemini sinh.
     """
 
     query = serializers.CharField(read_only=True)
@@ -193,6 +196,9 @@ class ChatResponseSerializer(serializers.Serializer):
     recommendations = ProductResultSerializer(many=True, read_only=True, default=[])
     rag_count = serializers.IntegerField(read_only=True, default=0)
     kb_count = serializers.IntegerField(read_only=True, default=0)
+    intent = serializers.CharField(read_only=True, default="general")
+    intent_label = serializers.CharField(read_only=True, default="🔍 Tìm kiếm")
+    gemini_used = serializers.BooleanField(read_only=True, default=False)
 
 
 class RecommendResponseSerializer(serializers.Serializer):
