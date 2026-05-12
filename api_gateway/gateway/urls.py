@@ -12,6 +12,9 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('cart/', views.cart_view, name='cart'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('admin/orders/', views.admin_orders_view, name='admin_orders'),
+    path('admin/customers/', views.admin_customers_view, name='admin_customers'),
+    path('admin/stats/', views.admin_stats_view, name='admin_stats'),
     path('dashboard/product/<str:product_type>/', views.product_action_view, name='product_action'),
     path('product/<str:p_type>/<str:p_id>/', views.product_detail_view, name='product_detail'),
     path('chat/', views.chat_view, name='chat'),
@@ -44,4 +47,7 @@ urlpatterns = [
     path('api/shipments/', views.shipment_list_api, name='shipment_list_api'),
     path('api/shipments/<int:shipment_id>/', views.shipment_detail_api, name='shipment_detail_api'),
     path('api/shipments/<int:shipment_id>/status/', views.shipment_status_update_api, name='shipment_status_update_api'),
+
+    # ── Review Service APIs ───────────────────────────────────────────────────
+    path('api/reviews/', views.review_list_create_api, name='review_list_create_api'),
 ]

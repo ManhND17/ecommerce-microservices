@@ -7,7 +7,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         model = CartItem
         fields = [
             'id', 'user_id', 'product_id', 'product_type',
-            'product_name', 'price', 'quantity', 'size', 'updated_at'
+            'product_name', 'price', 'quantity', 'size', 'image_url', 'updated_at'
         ]
         read_only_fields = ['id', 'updated_at']
 
@@ -21,3 +21,4 @@ class UpsertCartItemSerializer(serializers.Serializer):
     price = serializers.FloatField()
     quantity = serializers.IntegerField(default=1, min_value=1)
     size = serializers.CharField(max_length=50, default='', allow_blank=True)
+    image_url = serializers.CharField(max_length=500, default='', allow_blank=True, required=False)

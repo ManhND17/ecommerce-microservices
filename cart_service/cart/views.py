@@ -41,6 +41,7 @@ def cart_upsert(request):
             'product_name': data['product_name'],
             'price': data['price'],
             'quantity': data['quantity'],
+            'image_url': data.get('image_url', ''),
         }
     )
     return Response(

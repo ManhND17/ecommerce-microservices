@@ -10,6 +10,9 @@
             <table style="width: 100%; text-align: left; border-collapse: collapse;">
                 <thead>
                     <tr style="border-bottom: 2px solid #f1f5f9; color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase; font-weight: 800;">
+                        <th style="padding: 1.2rem 0; width: 50px;">
+                            <input type="checkbox" id="select-all" checked onchange="toggleAll(this)" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                        </th>
                         <th style="padding: 1.2rem 0;">Sản phẩm</th>
                         <th style="padding: 1.2rem 0;">Loại</th>
                         <th style="padding: 1.2rem 0;">Giá bán</th>
@@ -20,12 +23,27 @@
                 </thead>
                 <tbody>
                     {% for key, item in cart.items %}
-                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.3s;">
+                    <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.3s;" id="row-{{ key }}">
                         <td style="padding: 2rem 0;">
-                            <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main);">{{ item.name }}</div>
-                            {% if item.size %}
-                                <span style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Kích cỡ: {{ item.size }}</span>
-                            {% endif %}
+                            <input type="checkbox" class="item-checkbox" data-key="{{ key }}" 
+                                   {% if item.selected != False %}checked{% endif %} 
+                                   onchange="updateItemSelected('{{ key }}', this.checked)"
+                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                        </td>
+                        <td style="padding: 2rem 0;">
+                            <div style="display: flex; align-items: center; gap: 20px;">
+                                <img src="{{ item.image|default:'https://via.placeholder.com/80x80?text=No+Img' }}" 
+                                     alt="{{ item.name }}" 
+                                     loading="lazy"
+                                     style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 1px solid #f1f5f9;" 
+                                     onerror="this.src='https://via.placeholder.com/80x80?text=No+Img'">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-main);">{{ item.name }}</div>
+                                    {% if item.size %}
+                                        <span style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Kích cỡ: {{ item.size }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </td>
                         <td style="padding: 2rem 0;"><span class="tag" style="background: #eef2ff; color: var(--primary);">{{ item.type }}</span></td>
                         <td style="padding: 2rem 0; font-weight: 800; font-size: 1.1rem; color: #ef4444;">
@@ -39,7 +57,7 @@
                                    style="width: 70px; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-weight: 800; text-align: center; outline: none; transition: 0.3s;">
                         </td>
                         <td style="padding: 2rem 0; font-weight: 800; font-size: 1.1rem; color: #ef4444;">
-                            <span id="subtotal-{{ key }}" class="item-subtotal">{{ item.subtotal|floatformat:'0' }}</span> 
+                            <span id="subtotal-{{ key }}" class="item-subtotal" data-raw="{{ item.subtotal|floatformat:'0'|unlocalize }}">{{ item.subtotal|floatformat:'0' }}</span> 
                             <span style="font-size: 0.8rem; opacity: 0.6;">VNĐ</span>
                         </td>
                         <td style="padding: 2rem 0; text-align: right;">
@@ -60,13 +78,13 @@
             <a href="{% url 'home' %}" class="btn" style="background: #f1f5f9; color: var(--text-main);">← Tiếp tục mua sắm</a>
             <div style="display: flex; align-items: center; gap: 2.5rem;">
                 <div style="text-align: right;">
-                    <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Tổng số tiền:</div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Tổng số tiền được chọn:</div>
                     <div style="font-size: 2.2rem; font-weight: 800; color: #ef4444;">
                         <span id="cart-grand-total">{{ total|floatformat:"0" }}</span> 
                         <span style="font-size: 1.1rem;">VNĐ</span>
                     </div>
                 </div>
-                <a href="{% url 'checkout' %}" class="btn btn-primary" style="padding: 16px 40px; font-size: 1.1rem; text-decoration: none; display: inline-block;">Mua hàng</a>
+                <a href="javascript:void(0)" onclick="proceedToCheckout()" class="btn btn-primary" id="checkout-btn" style="padding: 16px 40px; font-size: 1.1rem; text-decoration: none; display: inline-block;">Mua hàng</a>
             </div>
         </div>
         {% else %}
@@ -118,21 +136,15 @@
 function updateCartQuantity(key, price, qty) {
     if (!qty || qty < 1) qty = 1;
     
-    // 1. Update Subtotal for this item
     const subtotalEl = document.getElementById(`subtotal-${key}`);
     const newSubtotal = price * qty;
+    
+    // Cập nhật giá trị hiển thị và giá trị raw
     subtotalEl.innerText = newSubtotal.toLocaleString('vi-VN');
+    subtotalEl.setAttribute('data-raw', newSubtotal);
 
-    // 2. Update Grand Total
-    let grandTotal = 0;
-    document.querySelectorAll('.item-subtotal').forEach(el => {
-        // More robust cleaning: remove everything except digits
-        let val = el.innerText.replace(/\D/g, '');
-        grandTotal += parseFloat(val) || 0;
-    });
-    document.getElementById('cart-grand-total').innerText = grandTotal.toLocaleString('vi-VN');
+    calculateTotal();
 
-    // 3. Silent persist to server via AJAX
     const formData = new FormData();
     formData.append('action', 'update');
     formData.append('cart_key', key);
@@ -146,14 +158,77 @@ function updateCartQuantity(key, price, qty) {
     });
 }
 
-// Initial formatting
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.item-price, .item-subtotal, #cart-grand-total').forEach(el => {
-        // If it's the raw price span with data-price, use that for precision
-        let raw = el.getAttribute('data-price') || el.innerText;
-        let val = parseFloat(raw.replace(/\D/g, ''));
-        if(!isNaN(val)) el.innerText = val.toLocaleString('vi-VN');
+function updateItemSelected(key, selected) {
+    calculateTotal();
+    
+    const formData = new FormData();
+    formData.append('action', 'update_selected');
+    formData.append('cart_key', key);
+    formData.append('selected', selected);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    fetch("{% url 'cart' %}", {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
     });
+}
+
+function toggleAll(master) {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = master.checked;
+        updateItemSelected(cb.getAttribute('data-key'), cb.checked);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Định dạng lại toàn bộ số khi tải trang
+    document.querySelectorAll('.item-price, .item-subtotal, #cart-grand-total').forEach(el => {
+        let raw = el.getAttribute('data-price') || el.getAttribute('data-raw') || el.innerText;
+        // Loại bỏ tuyệt đối mọi ký tự không phải số để tránh parseFloat dừng sớm ở dấu chấm/phẩy
+        let val = parseInt(String(raw).replace(/\D/g, '')) || 0;
+        
+        el.innerText = val.toLocaleString('vi-VN');
+        el.setAttribute('data-raw', val);
+    });
+    calculateTotal();
 });
+
+function calculateTotal() {
+    let grandTotal = 0;
+    let selectedCount = 0;
+    
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        if (cb.checked) {
+            const key = cb.getAttribute('data-key');
+            const subtotalEl = document.getElementById(`subtotal-${key}`);
+            
+            // Lấy giá trị từ data-raw, nếu mất thì lấy từ text và lọc sạch
+            let rawVal = subtotalEl.getAttribute('data-raw') || subtotalEl.innerText;
+            let val = parseInt(String(rawVal).replace(/\D/g, '')) || 0;
+            
+            grandTotal += val;
+            selectedCount++;
+        }
+    });
+    
+    const grandTotalEl = document.getElementById('cart-grand-total');
+    grandTotalEl.innerText = Math.round(grandTotal).toLocaleString('vi-VN');
+    grandTotalEl.setAttribute('data-raw', grandTotal);
+
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (selectedCount === 0) {
+        checkoutBtn.style.opacity = '0.5';
+        checkoutBtn.style.pointerEvents = 'none';
+    } else {
+        checkoutBtn.style.opacity = '1';
+        checkoutBtn.style.pointerEvents = 'auto';
+    }
+}
+
+function proceedToCheckout() {
+    window.location.href = "{% url 'checkout' %}";
+}
 </script>
 {% endblock %}

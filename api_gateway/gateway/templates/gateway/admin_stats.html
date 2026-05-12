@@ -1,0 +1,563 @@
+{% extends 'gateway/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<style>
+    /* Dashboard Layout: Sidebar sát lề trái */
+    .dashboard-container {
+        display: flex;
+        min-height: calc(100vh - 80px);
+        gap: 0;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar {
+        width: 260px;
+        background: white;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem 0.8rem;
+        gap: 0.4rem;
+        flex-shrink: 0;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 80px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-x: hidden;
+        z-index: 100;
+    }
+
+    .sidebar.collapsed {
+        width: 80px;
+    }
+
+    .sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+
+    .sidebar.collapsed .sidebar-header {
+        justify-content: center;
+        padding: 0 0 1.5rem;
+    }
+
+    .sidebar-brand {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .sidebar.collapsed .sidebar-brand {
+        display: none;
+    }
+
+    .toggle-btn {
+        background: #f1f5f9;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .nav-item:hover {
+        background: #f8fafc;
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+
+    .nav-item.active {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+
+    .sidebar.collapsed .nav-item span:not(.nav-icon) {
+        display: none;
+    }
+
+    .sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .nav-icon {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .main-content {
+        flex: 1;
+        padding: 2rem 3rem;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+</style>
+
+<div class="dashboard-container animate-up">
+    <!-- Sidebar Collapsible -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">Quản trị viên</div>
+            <button class="toggle-btn" onclick="toggleSidebar()">
+                <span id="toggle-icon">❮</span>
+            </button>
+        </div>
+        
+        <a href="{% url 'dashboard' %}" class="nav-item">
+            <span class="nav-icon">📦</span>
+            <span>Sản phẩm</span>
+        </a>
+        
+        <a href="{% url 'admin_orders' %}" class="nav-item">
+            <span class="nav-icon">📋</span>
+            <span>Đơn hàng</span>
+        </a>
+        
+        <a href="{% url 'admin_customers' %}" class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span>Khách hàng</span>
+        </a>
+        
+        <a href="{% url 'admin_stats' %}" class="nav-item active">
+            <span class="nav-icon">📊</span>
+            <span>Thống kê</span>
+        </a>
+    </aside>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const icon = document.getElementById('toggle-icon');
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            
+            icon.innerText = isCollapsed ? '❯' : '❮';
+            localStorage.setItem('admin_sidebar_collapsed', isCollapsed);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('toggle-icon').innerText = '❯';
+            }
+        });
+    </script>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Trang Thống Kê</h1>
+            <p style="color: var(--text-muted);">Tổng quan về doanh thu và hoạt động hệ thống.</p>
+        </div>
+
+        <!-- Metric Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="glass-card" style="background: white; padding: 1.2rem; border-left: 4px solid var(--primary);">
+                <div style="color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Doanh thu (Kỳ này)</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-top: 0.5rem;">{{ total_revenue|floatformat:"0"|intcomma }} đ</div>
+            </div>
+            
+            <div class="glass-card" style="background: white; padding: 1.2rem; border-left: 4px solid #3b82f6;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Tổng đơn hàng:</div>
+                <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 0.5rem;">
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #1d4ed8;">{{ total_orders_all_time }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
+                        ({% if current_period == 'day' %}Hôm nay{% elif current_period == 'month' %}Tháng này{% elif current_period == 'quarter' %}Quý này{% else %}Năm nay{% endif %}: {{ total_orders_period }})
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card" style="background: white; padding: 1.2rem; border-left: 4px solid #8b5cf6;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Sản phẩm bán ra</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #7c3aed; margin-top: 0.5rem;">{{ total_qty_sold }}</div>
+            </div>
+            
+            <div class="glass-card" style="background: white; padding: 1.2rem; border-left: 4px solid #10b981;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Hoàn thành</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #047857; margin-top: 0.5rem;">{{ completed_orders }}</div>
+            </div>
+
+            <div class="glass-card" style="background: white; padding: 1.2rem; border-left: 4px solid #f59e0b;">
+                <div style="color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Người dùng</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #b45309; margin-top: 0.5rem;">{{ total_users }}</div>
+            </div>
+        </div>
+
+        <!-- Charts Area -->
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="glass-card" style="background: white; padding: 1.5rem; height: 350px; display: flex; flex-direction: column;">
+                <h3 style="margin-top: 0; margin-bottom: 1rem; font-weight: 800;">📈 Xu hướng doanh thu</h3>
+                <div style="flex-grow: 1; position: relative;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="glass-card" style="background: white; padding: 1.5rem; height: 350px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-weight: 800;">📊 Doanh số theo Loại</h3>
+                    <select id="categoryMetric" onchange="updateCategoryChart()" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.8rem; font-weight: 600; background: #f8fafc;">
+                        <option value="qty">Số lượng</option>
+                        <option value="revenue">Doanh thu</option>
+                    </select>
+                </div>
+                <div style="flex-grow: 1; position: relative;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-card" style="background: white; padding: 1.5rem; height: 350px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-weight: 800;">🎯 Trạng thái đơn hàng</h3>
+                    <select id="statusMetric" onchange="updateStatusChart()" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.8rem; font-weight: 600; background: #f8fafc;">
+                        <option value="count">Số lượng đơn</option>
+                        <option value="revenue">Giá trị (VND)</option>
+                    </select>
+                </div>
+                <div style="flex-grow: 1; position: relative;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="glass-card" style="background: white; padding: 1.5rem; height: 400px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; font-weight: 800;">🛍️ Chi tiết sản phẩm bán theo loại</h3>
+                    <select id="categoryFilter" onchange="updateProductDetailChart()" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd; font-weight: 600; cursor: pointer; outline: none; background: #f8fafc;">
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+                <div style="flex-grow: 1; position: relative;">
+                    <canvas id="productDetailChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section (Moved here) -->
+        <div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+            <div style="background: white; padding: 8px 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+                <span style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted);">Thời gian:</span>
+                <select id="filter-period" style="border: none; outline: none; font-weight: 700; color: var(--primary); cursor: pointer; background: transparent;">
+                    <option value="day" {% if current_period == 'day' %}selected{% endif %}>Hôm nay</option>
+                    <option value="month" {% if current_period == 'month' %}selected{% endif %}>Tháng này</option>
+                    <option value="quarter" {% if current_period == 'quarter' %}selected{% endif %}>Quý này</option>
+                    <option value="year" {% if current_period == 'year' %}selected{% endif %}>Năm nay</option>
+                </select>
+            </div>
+
+            <div style="background: white; padding: 8px 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+                <span style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted);">Số lượng:</span>
+                <select id="filter-limit" style="border: none; outline: none; font-weight: 700; color: var(--primary); cursor: pointer; background: transparent;">
+                    <option value="5" {% if current_limit == 5 %}selected{% endif %}>Top 5</option>
+                    <option value="10" {% if current_limit == 10 %}selected{% endif %}>Top 10</option>
+                    <option value="20" {% if current_limit == 20 %}selected{% endif %}>Top 20</option>
+                    <option value="50" {% if current_limit == 50 %}selected{% endif %}>Top 50</option>
+                </select>
+            </div>
+
+            <button onclick="applyFilters()" class="btn btn-primary" style="padding: 10px 20px; border-radius: 10px; font-weight: 700;">Áp dụng</button>
+        </div>
+
+        <script>
+            function applyFilters() {
+                const period = document.getElementById('filter-period').value;
+                const limit = document.getElementById('filter-limit').value;
+                location.href = `?period=${period}&limit=${limit}`;
+            }
+        </script>
+
+        <!-- Top Lists Area (Full Width per Table) -->
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+            <!-- Top Products -->
+            <div class="glass-card" style="background: white; padding: 0; overflow: hidden; border: 1px solid #e2e8f0;">
+                <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                    <h3 style="margin: 0; font-weight: 800; color: var(--text-main);">🔥 Top {{ current_limit }} Sản Phẩm Bán Chạy Nhất</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <span class="tag" style="background: #eef2ff; color: var(--primary);">Kỳ lọc: {{ current_period|capfirst }}</span>
+                    </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead style="background: #ffffff; border-bottom: 2px solid #f1f5f9;">
+                        <tr>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; width: 40%;">Sản phẩm</th>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; text-align: center;">Số lượng bán</th>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; text-align: right;">Giá TB</th>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; text-align: right;">Tổng doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in top_products %}
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 15px 25px;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <img src="{{ p.image|default:'https://via.placeholder.com/50x50?text=No+Img' }}" alt="{{ p.name }}" loading="lazy" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover; border: 1px solid #eee; background: #f9f9f9;" onerror="this.src='https://via.placeholder.com/50x50?text=No+Img'">
+                                    <div>
+                                        <div style="font-weight: 700; color: var(--text-main);">{{ p.name }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">ID: #{{ p.id|default:forloop.counter }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="padding: 15px 25px; text-align: center;">
+                                <span style="background: #eef2ff; color: var(--primary); padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.9rem;">{{ p.qty }}</span>
+                            </td>
+                            <td style="padding: 15px 25px; text-align: right; color: var(--text-muted);">
+                                {{ p.avg_price|floatformat:0|intcomma }} đ
+                            </td>
+                            <td style="padding: 15px 25px; text-align: right; font-weight: 800; color: var(--primary); font-size: 1.05rem;">
+                                {{ p.revenue|floatformat:0|intcomma }} đ
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">Chưa có dữ liệu trong kỳ này</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Top Customers -->
+            <div class="glass-card" style="background: white; padding: 0; overflow: hidden; border: 1px solid #e2e8f0;">
+                <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                    <h3 style="margin: 0; font-weight: 800; color: var(--text-main);">👑 Top {{ current_limit }} Khách Hàng Chi Tiêu Nhiều Nhất</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <span class="tag" style="background: #f0fdf4; color: #15803d;">Kỳ lọc: {{ current_period|capfirst }}</span>
+                    </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead style="background: #ffffff; border-bottom: 2px solid #f1f5f9;">
+                        <tr>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; width: 40%;">Khách hàng</th>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; text-align: center;">Số đơn hàng</th>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; text-align: right;">Giá trị TB/Đơn</th>
+                            <th style="padding: 15px 25px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; text-align: right;">Tổng chi tiêu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in top_customers %}
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 15px 25px;">
+                                <div style="font-weight: 700; color: var(--text-main);">{{ c.name }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">ID: #{{ c.user_id|default:forloop.counter }}</div>
+                            </td>
+                            <td style="padding: 15px 25px; text-align: center;">
+                                <span style="background: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.9rem;">{{ c.orders }}</span>
+                            </td>
+                            <td style="padding: 15px 25px; text-align: right; color: var(--text-muted);">
+                                {{ c.aov|floatformat:0|intcomma }} đ
+                            </td>
+                            <td style="padding: 15px 25px; text-align: right; font-weight: 800; color: #15803d; font-size: 1.05rem;">
+                                {{ c.total|floatformat:0|intcomma }} đ
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">Chưa có dữ liệu trong kỳ này</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script>
+    // Register the datalabels plugin globally but we will disable it where not needed
+    Chart.register(ChartDataLabels);
+
+    // 1. Data Preparation
+    const orders = {{ orders_js|safe|default:"[]" }};
+    const categorySales = {{ category_sales_js|safe|default:"{}" }};
+    const categoryRevenue = {{ category_revenue_js|safe|default:"{}" }};
+    const categoryProductDetail = {{ category_product_detail_js|safe|default:"{}" }};
+    const statusRevenue = {{ status_revenue_js|safe|default:"{}" }};
+    
+    const statusCounts = { 'pending': 0, 'pending_payment': 0, 'preparing': 0, 'prepared': 0, 'shipping': 0, 'delivered': 0, 'cancelled': 0 };
+    orders.forEach(o => { if(statusCounts[o.status] !== undefined) statusCounts[o.status]++; });
+
+    // 2. Revenue Trend Chart
+    const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctxRevenue, {
+        type: 'line',
+        data: {
+            labels: {{ revenue_labels_js|safe|default:"[]" }},
+            datasets: [{
+                label: 'Doanh thu (VND)',
+                data: {{ revenue_data_js|safe|default:"[]" }},
+                borderColor: '#4f46e5',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(79, 70, 229, 0.05)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { datalabels: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => new Intl.NumberFormat('vi-VN').format(v) + ' đ' } } }
+        }
+    });
+
+    // 3. Category Sales Chart
+    let categoryChart;
+    const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+    function updateCategoryChart() {
+        const metric = document.getElementById('categoryMetric').value;
+        const data = metric === 'qty' ? categorySales : categoryRevenue;
+        if(categoryChart) categoryChart.destroy();
+        categoryChart = new Chart(ctxCategory, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{
+                    data: Object.values(data),
+                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+                    borderWidth: 2, borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: 10 },
+                plugins: { 
+                    datalabels: { display: false },
+                    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11, weight: '600' } } },
+                    tooltip: {
+                        callbacks: {
+                            label: (item) => {
+                                let val = item.raw;
+                                if(metric === 'revenue') val = new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                                return ` ${item.label}: ${val}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 4. Order Status Chart
+    let statusChart;
+    const ctxStatus = document.getElementById('statusChart').getContext('2d');
+    function updateStatusChart() {
+        const metric = document.getElementById('statusMetric').value;
+        const labels = ['Chờ xử lý', 'Đang chuẩn bị', 'Đang giao', 'Hoàn thành', 'Đã hủy'];
+        let data = [];
+        if(metric === 'count') {
+            data = [
+                (statusCounts.pending || 0) + (statusCounts.pending_payment || 0), 
+                (statusCounts.preparing || 0) + (statusCounts.prepared || 0), 
+                (statusCounts.shipping || 0), 
+                (statusCounts.delivered || 0), 
+                (statusCounts.cancelled || 0)
+            ];
+        } else {
+            data = [
+                (statusRevenue.pending || 0) + (statusRevenue.pending_payment || 0), 
+                (statusRevenue.preparing || 0) + (statusRevenue.prepared || 0), 
+                (statusRevenue.shipping || 0), 
+                (statusRevenue.delivered || 0), 
+                (statusRevenue.cancelled || 0)
+            ];
+        }
+        if(statusChart) statusChart.destroy();
+        statusChart = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#ef4444'], borderWidth: 2, borderColor: '#ffffff' }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: 10 },
+                plugins: { 
+                    datalabels: { display: false },
+                    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11, weight: '600' } } },
+                    tooltip: {
+                        callbacks: {
+                            label: (item) => {
+                                let val = item.raw;
+                                if(metric === 'revenue') val = new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+                                return ` ${item.label}: ${val}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 5. Detailed Product Chart
+    let productDetailChart;
+    const ctxProductDetail = document.getElementById('productDetailChart').getContext('2d');
+    function updateProductDetailChart() {
+        const cat = document.getElementById('categoryFilter').value;
+        const data = categoryProductDetail[cat] || {};
+        const labels = Object.keys(data);
+        const values = Object.values(data);
+        if (productDetailChart) productDetailChart.destroy();
+        productDetailChart = new Chart(ctxProductDetail, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: `Số lượng bán - ${cat}`, data: values, backgroundColor: 'rgba(79, 70, 229, 0.7)', borderRadius: 8 }] },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { datalabels: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
+            }
+        });
+    }
+
+    // Initialization
+    const catFilter = document.getElementById('categoryFilter');
+    const categories = Object.keys(categoryProductDetail);
+    categories.forEach(cat => {
+        const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; catFilter.appendChild(opt);
+    });
+
+    updateCategoryChart();
+    updateStatusChart();
+    if (categories.length > 0) {
+        updateProductDetailChart();
+    } else {
+        ctxProductDetail.font = "16px sans-serif";
+        ctxProductDetail.textAlign = "center";
+        ctxProductDetail.fillText("Không có dữ liệu chi tiết sản phẩm", ctxProductDetail.canvas.width/2, ctxProductDetail.canvas.height/2);
+    }
+</script>
+{% endblock %}

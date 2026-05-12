@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # ── MICROSERVICES ───────────────────────────────────────────────────────────
@@ -8,16 +6,25 @@ services:
     build: .
     command: >
       sh -c "python api_gateway/manage.py migrate && 
-             python api_gateway/manage.py runserver 0.0.0.0:8000"
+             python api_gateway/manage.py runserver 0.0.0.0:${GATEWAY_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     environment:
       - DB_NAME=log_tracking_db
       - DB_HOST=host.docker.internal
       - DB_PORT=5432
       - RABBITMQ_HOST=rabbitmq
+      - USER_SERVICE_URL=http://user-service:${USER_SERVICE_PORT}/api/user/
+      - PRODUCT_SERVICE_URL=http://product-service:${PRODUCT_SERVICE_PORT}/api/products/
+      - ORDER_SERVICE_URL=http://order-service:${ORDER_SERVICE_PORT}/api/
+      - PAYMENT_SERVICE_URL=http://payment-service:${PAYMENT_SERVICE_PORT}/api/
+      - SHIPMENT_SERVICE_URL=http://shipment-service:${SHIPMENT_SERVICE_PORT}/api/
+      - CART_SERVICE_URL=http://cart-service:${CART_SERVICE_PORT}/api/
+      - BEHAVIOR_SERVICE_URL=http://behavior-service:${BEHAVIOR_SERVICE_PORT}/api/logs/
+      - REVIEW_SERVICE_URL=http://review-service:${REVIEW_SERVICE_PORT}/api/reviews/
+      - AI_SERVICE_URL=http://ai-service:${AI_SERVICE_PORT}/api/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -28,11 +35,11 @@ services:
     build: .
     command: >
       sh -c "python user_service/manage.py migrate && 
-             python user_service/manage.py runserver 0.0.0.0:8001"
+             python user_service/manage.py runserver 0.0.0.0:${USER_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8001:8001"
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     environment:
       - DB_ENGINE=django.db.backends.mysql
       - DB_NAME=user_db
@@ -51,11 +58,11 @@ services:
     build: .
     command: >
       sh -c "python product_service/manage.py migrate && 
-             python product_service/manage.py runserver 0.0.0.0:8008"
+             python product_service/manage.py runserver 0.0.0.0:${PRODUCT_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8008:8008"
+      - "${PRODUCT_SERVICE_PORT}:${PRODUCT_SERVICE_PORT}"
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=product_db
@@ -73,11 +80,11 @@ services:
     build: .
     command: >
       sh -c "python cart_service/manage.py migrate &&
-             python cart_service/manage.py runserver 0.0.0.0:8007"
+             python cart_service/manage.py runserver 0.0.0.0:${CART_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8007:8007"
+      - "${CART_SERVICE_PORT}:${CART_SERVICE_PORT}"
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=cart_db
@@ -92,11 +99,11 @@ services:
     build: .
     command: >
       sh -c "python order_service/manage.py migrate && 
-             python order_service/manage.py runserver 0.0.0.0:8003"
+             python order_service/manage.py runserver 0.0.0.0:${ORDER_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8003:8003"
+      - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=order_db
@@ -131,11 +138,11 @@ services:
     build: .
     command: >
       sh -c "python payment_service/manage.py migrate && 
-             python payment_service/manage.py runserver 0.0.0.0:8004"
+             python payment_service/manage.py runserver 0.0.0.0:${PAYMENT_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8004:8004"
+      - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
     environment:
       - DB_NAME=payment_db
       - DB_HOST=host.docker.internal
@@ -145,7 +152,7 @@ services:
       - VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
       - VNPAY_TMN_CODE=YOUR_TMN_CODE
       - VNPAY_HASH_SECRET=YOUR_HASH_SECRET
-      - VNPAY_RETURN_URL=http://localhost:8000/payments/vnpay-return/
+      - VNPAY_RETURN_URL=http://localhost:${GATEWAY_PORT}/payments/vnpay-return/
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -172,11 +179,11 @@ services:
     build: .
     command: >
       sh -c "python shipment_service/manage.py migrate && 
-             python shipment_service/manage.py runserver 0.0.0.0:8005"
+             python shipment_service/manage.py runserver 0.0.0.0:${SHIPMENT_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8005:8005"
+      - "${SHIPMENT_SERVICE_PORT}:${SHIPMENT_SERVICE_PORT}"
     environment:
       - DB_NAME=shipment_db
       - DB_HOST=host.docker.internal
@@ -210,12 +217,12 @@ services:
       context: ./ai_service
       dockerfile: Dockerfile
     ports:
-      - "8006:8006"
+      - "${AI_SERVICE_PORT}:${AI_SERVICE_PORT}"
     environment:
       - NEO4J_URI=bolt://neo4j:7687
-      - PRODUCT_SERVICE_URL=http://product-service:8008/api/products/
-      - CATALOG_SERVICE_URL=http://product-service:8008/api/catalogs/
-      - BEHAVIOR_SERVICE_URL=http://behavior-service:8009/api/logs/export/
+      - PRODUCT_SERVICE_URL=http://product-service:${PRODUCT_SERVICE_PORT}/api/products/
+      - CATALOG_SERVICE_URL=http://product-service:${PRODUCT_SERVICE_PORT}/api/catalogs/
+      - BEHAVIOR_SERVICE_URL=http://behavior-service:${BEHAVIOR_SERVICE_PORT}/api/logs/export/
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     volumes:
       - ./ai_service:/app
@@ -230,11 +237,11 @@ services:
     build: .
     command: >
       sh -c "python behavior_service/manage.py migrate &&
-             python behavior_service/manage.py runserver 0.0.0.0:8009"
+             python behavior_service/manage.py runserver 0.0.0.0:${BEHAVIOR_SERVICE_PORT}"
     volumes:
       - .:/app
     ports:
-      - "8009:8009"
+      - "${BEHAVIOR_SERVICE_PORT}:${BEHAVIOR_SERVICE_PORT}"
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=behavior_db
@@ -242,6 +249,38 @@ services:
       - DB_PASSWORD=123456
       - DB_HOST=host.docker.internal
       - DB_PORT=5432
+    networks:
+      - technova_net
+
+  review-service:
+    build:
+      context: ./review_service
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:${REVIEW_SERVICE_PORT}"
+    volumes:
+      - ./review_service:/app
+    ports:
+      - "${REVIEW_SERVICE_PORT}:${REVIEW_SERVICE_PORT}"
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=review_db
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_HOST=review-db
+      - DB_PORT=5432
+    depends_on:
+      - review-db
+    networks:
+      - technova_net
+
+  review-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=review_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
     networks:
       - technova_net
 
@@ -258,10 +297,10 @@ services:
   rabbitmq:
     image: rabbitmq:3.12-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5673:5672"
+      - "15673:15672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
       interval: 5s
       timeout: 5s
       retries: 5

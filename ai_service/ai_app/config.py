@@ -49,25 +49,25 @@ ENC_PATH: str = os.path.join(DATA_DIR, "metadata_encoders.pkl")
 
 PRODUCT_SERVICE_URL: str = os.getenv(
     "PRODUCT_SERVICE_URL",
-    "http://product-service:8008/api/products/",
+    "http://product-service:9008/api/products/",
 )
 """Endpoint lấy danh sách sản phẩm từ Product Service."""
 
 CATALOG_SERVICE_URL: str = os.getenv(
     "CATALOG_SERVICE_URL",
-    "http://product-service:8008/api/catalogs/",
+    "http://product-service:9008/api/catalogs/",
 )
 """Endpoint lấy danh mục từ Product Service."""
 
 CUSTOMER_SERVICE_URL: str = os.getenv(
     "CUSTOMER_SERVICE_URL",
-    "http://customer-service:8001/api/customers/",
+    "http://user-service:9001/api/user/",
 )
 """Endpoint Customer Service — dùng để xác thực người dùng nếu cần."""
 
 GATEWAY_ANALYTICS_URL: str = os.getenv(
     "GATEWAY_ANALYTICS_URL",
-    "http://api-gateway:8000/api/analytics/export/",
+    "http://api-gateway:9000/api/analytics/export/",
 )
 """Endpoint Analytics từ API Gateway — dùng để đồng bộ ChromaDB với dữ liệu HOT."""
 

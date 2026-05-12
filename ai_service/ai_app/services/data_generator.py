@@ -52,7 +52,7 @@ DATE_START: datetime = datetime(2024, 1, 1)
 DATE_RANGE_DAYS: int = 180
 RANDOM_SEED: int = 42
 
-API_GATEWAY_URL = "http://api-gateway:8000/api/interactions/"
+API_GATEWAY_URL = "http://api-gateway:9000/api/interactions/"
 
 
 # ── Hàm chính ─────────────────────────────────────────────────────────────────

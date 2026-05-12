@@ -49,7 +49,12 @@ def create_payment_view(request):
         return Response({"error": "Không thể tạo bản ghi thanh toán.", "details": str(e)},
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    payment_url = generate_vnpay_url(order_id, float(amount), txn_ref)
+    # Lấy IP thực của người dùng (hỗ trợ qua proxy / load balancer)
+    ip_addr = (
+        request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+        or request.META.get('REMOTE_ADDR', '127.0.0.1')
+    )
+    payment_url = generate_vnpay_url(order_id, float(amount), txn_ref, ip_addr=ip_addr)
 
     return Response({
         "payment_id": payment.id,

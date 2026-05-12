@@ -7,7 +7,7 @@ from .models import Order
 from .serializers import OrderSerializer, OrderStatusUpdateSerializer
 from .publishers import publish_event
 
-PRODUCT_SERVICE_API = "http://product-service:8008/api/products/check-inventory/"
+PRODUCT_SERVICE_API = "http://product-service:9008/api/products/check-inventory/"
 
 
 class OrderListCreateView(generics.ListCreateAPIView):

@@ -16,4 +16,4 @@ RUN pip install --upgrade pip && \
 
 COPY . /app/
 
-CMD ["python", "manage_ai.py", "runserver", "0.0.0.0:8006"]
+CMD sh -c "python manage_ai.py runserver 0.0.0.0:${AI_SERVICE_PORT:-9005}"

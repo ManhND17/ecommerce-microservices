@@ -63,7 +63,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Nếu muốn giới hạn origin cụ thể (production), comment dòng trên và dùng:
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:8010",
-#     "http://api-gateway:8000",
+#     "http://api-gateway:9000",
 # ]
 
 # Cho phép cookie/credentials qua CORS (nếu cần)

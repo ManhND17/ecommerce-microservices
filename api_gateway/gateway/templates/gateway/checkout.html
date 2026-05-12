@@ -177,7 +177,13 @@ function renderCart() {
         const it = cartData[k];
         const sub = it.qty * it.price;
         cartTotal += sub;
-        cartItems.push({ product_id: String(it.id), quantity: it.qty, unit_price: it.price, name: it.name });
+        cartItems.push({ 
+            product_id: String(it.id), 
+            quantity: it.qty, 
+            unit_price: it.price, 
+            name: it.name,
+            type: it.type // Added product type
+        });
         html += `<div class="item-row">
             <div style="flex:1; min-width:0;">
                 <div style="font-weight:700; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.name}</div>
@@ -226,7 +232,12 @@ async function placeOrder() {
     };
 
     const payload = {
-        items: cartItems.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price })),
+        items: cartItems.map(i => ({ 
+            product_id: i.product_id, 
+            quantity: i.quantity, 
+            unit_price: i.unit_price,
+            product_type: i.type // Forward product type to order service
+        })),
         payment_method: selectedPayment,
         shipping_info: shippingInfo
     };
@@ -257,18 +268,34 @@ async function placeOrder() {
         sessionStorage.setItem('last_order', JSON.stringify(successData));
 
         if (selectedPayment === 'vnpay') {
-            // Tạo link thanh toán VNPay - gửi kèm shipping_info để Payment Service lưu trữ
-            const payResp = await fetch('/api/payments/create/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ 
-                    order_id: data.id, 
-                    amount: data.total_price,
-                    shipping_info: shippingInfo 
-                })
-            });
-            const payData = await payResp.json();
-            if (payData.vnpay_url) { window.location.href = payData.vnpay_url; return; }
+            // Tạo link thanh toán VNPay
+            try {
+                const payResp = await fetch('/api/payments/create/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ 
+                        order_id: data.id, 
+                        amount: data.total_price,
+                        shipping_info: shippingInfo 
+                    })
+                });
+                const payData = await payResp.json();
+                
+                if (payData.vnpay_url) { 
+                    window.location.href = payData.vnpay_url; 
+                    return; 
+                } else {
+                    errBox.textContent = 'Không thể tạo liên kết thanh toán: ' + (payData.error || 'Lỗi không xác định');
+                    errBox.style.display = 'block';
+                    btn.textContent = '✅ Xác nhận đặt hàng'; btn.disabled = false;
+                    return;
+                }
+            } catch (payErr) {
+                errBox.textContent = 'Lỗi kết nối khi tạo thanh toán. Vui lòng thử lại trong Chi tiết đơn hàng.';
+                errBox.style.display = 'block';
+                btn.textContent = '✅ Xác nhận đặt hàng'; btn.disabled = false;
+                return;
+            }
         }
 
         window.location.href = '/order-success/';

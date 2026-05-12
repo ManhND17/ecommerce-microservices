@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 import requests
 import json
 from django.shortcuts import render, redirect
@@ -7,13 +8,15 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 # Service URLs
-USER_SERVICE_URL     = "http://user-service:8001/api/user/"
-PRODUCT_SERVICE_URL  = "http://product-service:8008/api/products/"
-ORDER_SERVICE_URL    = "http://order-service:8003/api/"
-PAYMENT_SERVICE_URL  = "http://payment-service:8004/api/"
-SHIPMENT_SERVICE_URL = "http://shipment-service:8005/api/"
-CART_SERVICE_URL     = "http://cart-service:8007/api/"
-BEHAVIOR_SERVICE_URL = "http://behavior-service:8009/api/logs/"
+USER_SERVICE_URL     = os.getenv("USER_SERVICE_URL", "http://user-service:9001/api/user/")
+PRODUCT_SERVICE_URL  = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:9008/api/products/")
+ORDER_SERVICE_URL    = os.getenv("ORDER_SERVICE_URL", "http://order-service:9002/api/")
+PAYMENT_SERVICE_URL  = os.getenv("PAYMENT_SERVICE_URL", "http://payment-service:9003/api/")
+SHIPMENT_SERVICE_URL = os.getenv("SHIPMENT_SERVICE_URL", "http://shipment-service:9004/api/")
+CART_SERVICE_URL     = os.getenv("CART_SERVICE_URL", "http://cart-service:9006/api/")
+BEHAVIOR_SERVICE_URL = os.getenv("BEHAVIOR_SERVICE_URL", "http://behavior-service:9007/api/logs/")
+REVIEW_SERVICE_URL   = os.getenv("REVIEW_SERVICE_URL", "http://review-service:9009/api/reviews/")
+AI_BASE_URL          = os.getenv("AI_SERVICE_URL", "http://ai-service:9005/api/")
 
 def get_client_info(request):
     if not request.session.session_key:
@@ -56,6 +59,7 @@ def _cart_fetch(user_id):
                     'price': item['price'],
                     'qty': item['quantity'],
                     'size': item.get('size', ''),
+                    'image': item.get('image_url', ''),
                     '_db_pk': item['id'],
                 }
             return db_cart
@@ -64,7 +68,7 @@ def _cart_fetch(user_id):
     return {}
 
 
-def _cart_upsert(user_id, product_id, product_type, product_name, price, quantity, size=''):
+def _cart_upsert(user_id, product_id, product_type, product_name, price, quantity, size='', **kwargs):
     """Upsert một item vào cart_service."""
     try:
         requests.post(f"{CART_SERVICE_URL}cart/items/", json={
@@ -75,6 +79,7 @@ def _cart_upsert(user_id, product_id, product_type, product_name, price, quantit
             'price': price,
             'quantity': quantity,
             'size': size or '',
+            'image_url': kwargs.get('image_url', ''),
         }, timeout=3)
     except Exception as e:
         print(f"[cart_service] upsert error: {e}")
@@ -120,7 +125,6 @@ def _cart_clear(user_id):
         print(f"[cart_service] clear error: {e}")
 
 # AI Service Endpoints
-AI_BASE_URL = "http://ai-service:8006/api/"
 AI_CHAT_URL = f"{AI_BASE_URL}chat/"
 AI_RECOMMEND_URL = f"{AI_BASE_URL}recommend/"
 AI_RECOMMEND_SEARCH_URL = f"{AI_RECOMMEND_URL}search/"
@@ -163,8 +167,14 @@ def normalize_products(products):
         if 'title' in item and 'name' not in item:
             item['name'] = item['title']
         if 'brand' not in item:
-            # Ước lượng brand từ specific_attributes hoặc name if any
             item['brand'] = attrs.get('brand', '')
+            
+        # Chuẩn hóa ảnh
+        img = p.get('image_url') or p.get('image') or p.get('thumbnail') or ''
+        if img and img.startswith('/media/'):
+             # Giả định media nằm ở product-service nếu là path tương đối
+             img = f"http://localhost:9008{img}"
+        item['image_url'] = img
             
         normalized.append(item)
     return normalized
@@ -173,7 +183,7 @@ def home_view(request):
     # Lấy toàn bộ sản phẩm và danh mục
     all_products_raw = fetch_data(PRODUCT_SERVICE_URL)
     products = normalize_products(all_products_raw)
-    catalogs = fetch_data("http://product-service:8008/api/catalogs/")
+    catalogs = fetch_data("http://product-service:9008/api/catalogs/")
     
     # Nhóm sản phẩm theo từng catalog để hiển thị theo phần (Section)
     grouped_products = {}
@@ -402,6 +412,7 @@ def cart_view(request):
         except (ValueError, TypeError):
             qty = int(re.sub(r'[^\d]', '', str(qty_raw)) or 1)
         product_size = request.POST.get('selected_size', '')
+        image_url = request.POST.get('image_url', '')
         
         cart_key = f"{product_type}_{product_id}"
         if product_size: cart_key += f"_{product_size}"
@@ -412,7 +423,7 @@ def cart_view(request):
             else:
                 cart[cart_key] = {
                     'id': product_id, 'type': product_type, 'name': product_name,
-                    'price': price, 'qty': qty, 'size': product_size
+                    'price': price, 'qty': qty, 'size': product_size, 'image': image_url
                 }
             request.session['cart'] = cart
             request.session.modified = True
@@ -440,6 +451,7 @@ def cart_view(request):
                         price=price,
                         quantity=cart[cart_key]['qty'],
                         size=product_size,
+                        image_url=image_url
                     )
             except Exception: pass
 
@@ -469,6 +481,8 @@ def cart_view(request):
                         )
                 except Exception: pass
 
+                except Exception: pass
+
         elif action == 'remove':
             cart_key_to_remove = request.POST.get('cart_key')
             if cart_key_to_remove in cart:
@@ -488,6 +502,16 @@ def cart_view(request):
                             size=item_to_remove.get('size', ''),
                         )
                 except Exception: pass
+
+        elif action == 'update_selected':
+            cart_key_to_update = request.POST.get('cart_key')
+            is_selected = request.POST.get('selected') == 'true'
+            if cart_key_to_update in cart:
+                cart[cart_key_to_update]['selected'] = is_selected
+                request.session['cart'] = cart
+                request.session.modified = True
+                return JsonResponse({'status': 'ok'})
+
         return redirect('cart')
         
     # Pre-calculate totals for template
@@ -507,7 +531,10 @@ def cart_view(request):
         item_qty = int(item['qty'])
         subtotal = item_price * item_qty
         item['subtotal'] = subtotal
-        total += subtotal
+        
+        # Chỉ cộng vào tổng tiền nếu được chọn
+        if item.get('selected') != False:
+            total += subtotal
             
     # AI Recommendation for Cart
     ai_recommendations = []
@@ -533,6 +560,8 @@ def cart_view(request):
         'ai_recommendations': ai_recommendations
     })
 
+from django.core.paginator import Paginator
+
 def dashboard_view(request):
     role = str(request.session.get('role', '')).lower()
     if role not in ['staff', 'admin']:
@@ -542,17 +571,30 @@ def dashboard_view(request):
     all_raw = fetch_data(PRODUCT_SERVICE_URL)
     all_p = normalize_products(all_raw)
     
-    catalogs = fetch_data("http://product-service:8008/api/catalogs/")
+    catalogs = fetch_data("http://product-service:9008/api/catalogs/")
     
+    # Lấy trang hiện tại từ query params
+    page_number = request.GET.get('page', 1)
+    current_catalog_slug = request.GET.get('catalog', catalogs[0]['slug'] if catalogs else '')
+
     # Group products by catalog slug
     grouped_products = {}
     for cat in catalogs:
         slug = cat['slug']
-        grouped_products[slug] = [p for p in all_p if p['type'] == slug]
+        products_in_cat = [p for p in all_p if p['type'] == slug]
+        
+        # Chỉ phân trang cho Catalog đang được chọn để tối ưu
+        if slug == current_catalog_slug:
+            paginator = Paginator(products_in_cat, 8)
+            page_obj = paginator.get_page(page_number)
+            grouped_products[slug] = page_obj
+        else:
+            grouped_products[slug] = products_in_cat # Các tab khác giữ nguyên hoặc để trống
     
     return render(request, 'gateway/dashboard.html', {
         'grouped_products': grouped_products,
         'catalogs': catalogs,
+        'current_catalog': current_catalog_slug,
     })
 
 def product_action_view(request, product_type):
@@ -567,10 +609,16 @@ def product_action_view(request, product_type):
         
         if action == 'delete':
             requests.delete(f"{PRODUCT_SERVICE_URL}{product_id}/")
-            messages.success(request, 'Product deleted.')
+            messages.success(request, 'Đã xóa sản phẩm thành công.')
         elif action in ['add', 'edit']:
-            # Lưu ý: Cần xử lý Catalog ID khi add. Ở đây giả định catalog được gửi lên.
+            import json
             data = {k: v for k, v in request.POST.items() if k not in ['csrfmiddlewaretoken', 'action', 'product_id', 'product_type']}
+            
+            if 'specific_attributes' in data and data['specific_attributes'].strip():
+                try:
+                    data['specific_attributes'] = json.loads(data['specific_attributes'])
+                except Exception:
+                    data['specific_attributes'] = {}
             
             # Cloudinary upload if any
             if 'image_upload' in request.FILES:
@@ -581,12 +629,250 @@ def product_action_view(request, product_type):
                 except Exception: pass
 
             if action == 'add':
-                requests.post(PRODUCT_SERVICE_URL, json=data)
+                resp = requests.post(PRODUCT_SERVICE_URL, json=data)
             else:
-                requests.put(f"{PRODUCT_SERVICE_URL}{product_id}/", json=data)
-            messages.success(request, f'Product {action}ed successfully.')
+                # Xóa catalog khỏi data khi edit để tránh lưu đè nhầm (do select bị ẩn)
+                if 'catalog' in data:
+                    del data['catalog']
+                resp = requests.patch(f"{PRODUCT_SERVICE_URL}{product_id}/", json=data)
+                
+            if resp.status_code in [200, 201]:
+                msg = "Thêm mới" if action == 'add' else "Cập nhật"
+                messages.success(request, f'Đã {msg} sản phẩm thành công.')
+            else:
+                messages.error(request, f'Lỗi khi lưu: {resp.text}')
             
     return redirect('dashboard')
+
+def admin_orders_view(request):
+    role = str(request.session.get('role', '')).lower()
+    if role not in ['staff', 'admin']:
+        return redirect('login')
+        
+    orders = []
+    try:
+        resp = requests.get(f"{ORDER_SERVICE_URL}orders/", timeout=5)
+        if resp.status_code == 200:
+            orders = resp.json()
+            orders.sort(key=lambda x: x.get('id', 0), reverse=True)
+    except Exception as e:
+        print(f"Error fetching all orders: {e}")
+    
+    paginator = Paginator(orders, 8)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'gateway/admin_orders.html', {'orders': page_obj})
+
+def admin_customers_view(request):
+    role = str(request.session.get('role', '')).lower()
+    if role not in ['staff', 'admin']:
+        return redirect('login')
+        
+    token = request.session.get('access_token')
+    headers = {'Authorization': f'Bearer {token}'} if token else {}
+    
+    customers = []
+    try:
+        resp = requests.get(f"{USER_SERVICE_URL}admin/users/", headers=headers, timeout=5)
+        if resp.status_code == 200:
+            customers = [u for u in resp.json() if u.get('role', '').lower() == 'customer']
+    except Exception as e:
+        print(f"Error fetching users: {e}")
+        
+    paginator = Paginator(customers, 8)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'gateway/admin_customers.html', {'customers': page_obj})
+
+def admin_stats_view(request):
+    role = str(request.session.get('role', '')).lower()
+    if role not in ['staff', 'admin']:
+        return redirect('login')
+        
+    period = request.GET.get('period', 'month') # day, month, quarter, year
+    # 1. Lấy dữ liệu song song để tối ưu tốc độ
+    orders = []
+    total_users = 0
+    token = request.session.get('access_token')
+    headers = {'Authorization': f'Bearer {token}'} if token else {}
+    
+    def fetch_orders():
+        try:
+            r = requests.get(f"{ORDER_SERVICE_URL}orders/", timeout=3)
+            return r.json() if r.status_code == 200 else []
+        except: return []
+
+    def fetch_users():
+        try:
+            r = requests.get(f"{USER_SERVICE_URL}admin/users/", headers=headers, timeout=3)
+            return len(r.json()) if r.status_code == 200 else 0
+        except: return 0
+
+    def fetch_products():
+        try:
+            # Lấy toàn bộ sản phẩm để mapping category cho các đơn hàng cũ
+            r = requests.get(PRODUCT_SERVICE_URL, timeout=3)
+            if r.status_code == 200:
+                # { "1": "laptop", "2": "mobile" }
+                return {str(p['id']): p.get('type', 'Khác') for p in r.json()}
+            return {}
+        except: return {}
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future_orders = executor.submit(fetch_orders)
+        future_users = executor.submit(fetch_users)
+        future_products = executor.submit(fetch_products)
+        
+        orders = future_orders.result()
+        total_users = future_users.result()
+        product_type_map = future_products.result()
+    
+    from datetime import datetime, timedelta
+    from django.utils import timezone
+    now = timezone.now()
+    
+    total_orders_all_time = len(orders)
+    
+    # 1. Lọc đơn hàng theo thời gian
+    filtered_orders = []
+    for o in orders:
+        try:
+            # Chuyển string thành aware datetime
+            o_date = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00'))
+            is_match = False
+            if period == 'day' and o_date.date() == now.date():
+                is_match = True
+            elif period == 'month' and o_date.month == now.month and o_date.year == now.year:
+                is_match = True
+            elif period == 'quarter':
+                now_quarter = (now.month - 1) // 3 + 1
+                o_quarter = (o_date.month - 1) // 3 + 1
+                if now_quarter == o_quarter and o_date.year == now.year:
+                    is_match = True
+            elif period == 'year' and o_date.year == now.year:
+                is_match = True
+            
+            if is_match:
+                filtered_orders.append(o)
+        except: continue
+
+    # 2. Tính toán doanh thu & số lượng
+    total_revenue = sum(float(o.get('total_price', 0)) for o in filtered_orders if o.get('status') == 'delivered')
+    total_orders_period = len(filtered_orders)
+    completed_orders = len([o for o in filtered_orders if o.get('status') == 'delivered'])
+    
+    # 3. Top Sản phẩm bán chạy (chỉ tính đơn delivered)
+    product_sales = {}
+    category_sales = {} # { 'laptop': 15, 'mobile': 10 }
+    category_revenue = {} # { 'laptop': 1500000, ... }
+    category_product_detail = {} # { 'laptop': { 'Macbook': 5, 'Dell': 10 } }
+    
+    # Status metrics for Revenue
+    status_revenue = { 'pending': 0, 'pending_payment': 0, 'preparing': 0, 'prepared': 0, 'shipping': 0, 'delivered': 0, 'cancelled': 0 }
+
+    for o in filtered_orders:
+        s = o.get('status', 'unknown')
+        val = float(o.get('total_price', 0))
+        if s in status_revenue: status_revenue[s] += val
+
+        if s == 'delivered':
+            for item in o.get('items', []):
+                p_id = str(item.get('product_id'))
+                p_name = item.get('product_name', f"Sản phẩm #{p_id}")
+                
+                # Fallback mapping cho các đơn hàng cũ bị thiếu product_type
+                p_type = item.get('product_type')
+                if not p_type or p_type == 'Khác':
+                    p_type = product_type_map.get(p_id, 'Khác')
+                
+                p_image = item.get('image_url', '')
+                qty = int(item.get('quantity', 0))
+                price = float(item.get('price', 0))
+                revenue = qty * price
+                
+                # Fix URL ảnh
+                if p_image:
+                    if p_image.startswith('/media/'):
+                        p_image = f"http://localhost:9008{p_image}"
+                    elif 'product-service' in p_image:
+                        p_image = p_image.replace('product-service', 'localhost')
+
+                # Theo Sản phẩm tổng quát
+                if p_id not in product_sales:
+                    product_sales[p_id] = {'name': p_name, 'image': p_image, 'qty': 0, 'revenue': 0, 'type': p_type}
+                product_sales[p_id]['qty'] += qty
+                product_sales[p_id]['revenue'] += revenue
+                
+                # Theo Danh mục
+                category_sales[p_type] = category_sales.get(p_type, 0) + qty
+                category_revenue[p_type] = category_revenue.get(p_type, 0) + revenue
+                
+                # Chi tiết sản phẩm trong từng danh mục
+                if p_type not in category_product_detail:
+                    category_product_detail[p_type] = {}
+                category_product_detail[p_type][p_name] = category_product_detail[p_type].get(p_name, 0) + qty
+
+    limit = int(request.GET.get('limit', 5))
+    
+    top_products = sorted(product_sales.values(), key=lambda x: x['qty'], reverse=True)[:limit]
+    for p in top_products:
+        p['avg_price'] = p['revenue'] / p['qty'] if p['qty'] > 0 else 0
+    total_qty_sold = sum(cat_qty for cat_qty in category_sales.values())
+
+    # 4. Top Khách hàng (chỉ tính đơn delivered)
+    customer_stats = {}
+    for o in filtered_orders:
+        if o.get('status') == 'delivered':
+            uid = o.get('user_id')
+            uname = o.get('customer_name', f"Khách #{uid}")
+            if uid not in customer_stats:
+                customer_stats[uid] = {'name': uname, 'total_spent': 0, 'order_count': 0}
+            customer_stats[uid]['total_spent'] += float(o.get('total_price', 0))
+            customer_stats[uid]['order_count'] += 1
+            
+    for uid in customer_stats:
+        stats = customer_stats[uid]
+        stats['aov'] = stats['total_spent'] / stats['order_count'] if stats['order_count'] > 0 else 0
+        
+    top_customers = sorted(customer_stats.values(), key=lambda x: x['total_spent'], reverse=True)[:limit]
+
+    # 5. Dữ liệu biểu đồ 7 ngày gần nhất (luôn hiển thị 7 ngày để thấy xu hướng)
+    revenue_by_date = {}
+    for i in range(6, -1, -1):
+        date_str = (now - timedelta(days=i)).strftime('%d/%m')
+        revenue_by_date[date_str] = 0
+        
+    for o in orders: # Dùng toàn bộ đơn hàng cho biểu đồ xu hướng
+        if o.get('status') == 'delivered':
+            try:
+                o_date = datetime.fromisoformat(o['created_at'].replace('Z', '+00:00')).strftime('%d/%m')
+                if o_date in revenue_by_date:
+                    revenue_by_date[o_date] += float(o.get('total_price', 0))
+            except: continue
+            
+    revenue_labels = list(revenue_by_date.keys())
+    revenue_data = list(revenue_by_date.values())
+    
+    import json
+    return render(request, 'gateway/admin_stats.html', {
+        'total_revenue': total_revenue,
+        'total_orders_period': total_orders_period,
+        'total_orders_all_time': total_orders_all_time,
+        'completed_orders': completed_orders,
+        'total_users': total_users,
+        'total_qty_sold': total_qty_sold,
+        'orders_js': json.dumps(filtered_orders), 
+        'revenue_labels_js': json.dumps(revenue_labels),
+        'revenue_data_js': json.dumps(revenue_data),
+        'category_sales_js': json.dumps(category_sales),
+        'category_revenue_js': json.dumps(category_revenue),
+        'category_product_detail_js': json.dumps(category_product_detail),
+        'status_revenue_js': json.dumps(status_revenue),
+        'top_products': top_products,
+        'top_customers': top_customers,
+        'current_period': period,
+        'current_limit': limit,
+    })
 
 def ai_chat_api(request):
     if request.method == 'POST':
@@ -774,15 +1060,24 @@ def order_status_update_api(request, order_id):
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
     user_id = request.session.get('user_id')
-    role = request.session.get('role', 'customer')
+    role = str(request.session.get('role', 'customer')).lower()
     if not user_id:
         return JsonResponse({'error': 'Bạn cần đăng nhập.'}, status=401)
+    
+    if role not in ['staff', 'admin']:
+        return JsonResponse({'error': 'Bạn không có quyền thực hiện thao tác này.'}, status=403)
 
     url = f"{ORDER_SERVICE_URL}orders/{order_id}/status/"
     try:
         body = json.loads(request.body)
         resp = requests.patch(url, json=body, timeout=5)
-        return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+        
+        try:
+            data = resp.json()
+        except Exception:
+            data = {'error': resp.text or 'Lỗi không xác định từ Order Service'}
+            
+        return JsonResponse(data, status=resp.status_code, safe=False)
     except requests.exceptions.Timeout:
         return JsonResponse({'error': 'Order Service không phản hồi.'}, status=503)
     except Exception as e:
@@ -811,9 +1106,18 @@ def payment_create_api(request):
     try:
         body = json.loads(request.body)
         body['user_id'] = user_id
-        body['method'] = 'vnpay'  # Luôn là vnpay khi gọi từ đây
+        body['method'] = 'vnpay'
         resp = requests.post(url, json=body, timeout=5)
-        return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+        
+        try:
+            data = resp.json()
+            return JsonResponse(data, status=resp.status_code, safe=False)
+        except ValueError:
+            return JsonResponse({
+                'error': 'Payment Service trả về nội dung không hợp lệ.',
+                'details': resp.text[:200]
+            }, status=500)
+            
     except requests.exceptions.Timeout:
         return JsonResponse({'error': 'Payment Service không phản hồi.'}, status=503)
     except Exception as e:
@@ -871,7 +1175,14 @@ def checkout_view(request):
         return redirect('login')
 
     cart = request.session.get('cart', {})
-    cart_json = _json.dumps(cart)
+    # Chỉ lấy những sản phẩm đã được tích chọn
+    selected_cart = {k: v for k, v in cart.items() if v.get('selected') != False}
+    
+    if not selected_cart:
+        messages.warning(request, 'Bạn chưa chọn sản phẩm nào để thanh toán.')
+        return redirect('cart')
+
+    cart_json = _json.dumps(selected_cart)
     return render(request, 'gateway/checkout.html', {'cart_json': cart_json})
 
 
@@ -881,9 +1192,29 @@ def order_success_view(request):
     payment_method = request.GET.get('method', 'cod')
     is_success = request.GET.get('success', 'true').lower() != 'false'
 
-    # Xóa giỏ hàng sau khi đặt hàng thành công
+    # Xóa những sản phẩm đã mua khỏi giỏ hàng
     if is_success and 'cart' in request.session:
-        del request.session['cart']
+        user_id = request.session.get('user_id')
+        cart = request.session['cart']
+        # Tìm những key đã được chọn mua
+        keys_to_remove = [k for k, v in cart.items() if v.get('selected') != False]
+        
+        for k in keys_to_remove:
+            item = cart[k]
+            # Xóa trong session
+            del cart[k]
+            # Xóa trong cart_service (persistence)
+            if user_id:
+                try:
+                    _cart_delete_item(
+                        user_id=user_id,
+                        product_id=item['id'],
+                        product_type=item['type'],
+                        size=item.get('size', '')
+                    )
+                except Exception: pass
+        
+        request.session['cart'] = cart
         request.session.modified = True
 
     return render(request, 'gateway/order_success.html', {
@@ -984,3 +1315,38 @@ def shipment_status_update_api(request, shipment_id):
         return JsonResponse({'error': 'Shipment Service không phản hồi.'}, status=503)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REVIEW SERVICE PROXY
+# ─────────────────────────────────────────────────────────────────────────────
+
+@csrf_exempt
+def review_list_create_api(request):
+    """
+    GET  /api/reviews/?product_id=X  – Lấy danh sách đánh giá
+    POST /api/reviews/               – Gửi đánh giá mới
+    """
+    if request.method == 'GET':
+        p_id = request.GET.get('product_id')
+        try:
+            resp = requests.get(REVIEW_SERVICE_URL, params={'product_id': p_id}, timeout=3)
+            return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    elif request.method == 'POST':
+        user_id = request.session.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': 'Bạn cần đăng nhập để đánh giá.'}, status=401)
+
+        try:
+            body = json.loads(request.body)
+            body['user_id'] = user_id
+            body['username'] = request.session.get('username', 'Khách hàng')
+            resp = requests.post(REVIEW_SERVICE_URL, json=body, timeout=3)
+            return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

@@ -9,6 +9,7 @@ class CartItem(models.Model):
     price = models.FloatField()
     quantity = models.IntegerField(default=1)
     size = models.CharField(max_length=50, blank=True, null=True, default='')
+    image_url = models.URLField(max_length=500, blank=True, null=True, default='')
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
