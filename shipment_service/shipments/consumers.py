@@ -77,6 +77,47 @@ def on_payment_vnpay_confirmed(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
+def on_order_prepared(ch, method, properties, body):
+    """
+    Event từ Order Service khi Admin/Staff đánh dấu đơn hàng 'prepared'.
+    Routing Key: order.prepared
+    → Cập nhật Shipment tương ứng sang trạng thái 'prepared' (sẵn sàng để Shipper lấy).
+    """
+    data = json.loads(body)
+    order_id = data.get('order_id')
+    try:
+        shipment = Shipment.objects.get(order_id=order_id)
+        if shipment.status == 'preparing':
+            shipment.status = 'prepared'
+            shipment.save()
+            print(f"[Consumer] ✅ Shipment #{shipment.id} → prepared (Order #{order_id} đã được chuẩn bị xong)")
+        else:
+            print(f"[Consumer] ⚠️  Shipment #{shipment.id} đang ở trạng thái '{shipment.status}', bỏ qua order.prepared")
+    except Shipment.DoesNotExist:
+        print(f"[Consumer] ⚠️  Không tìm thấy Shipment cho Order #{order_id}")
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+
+def on_order_cancelled(ch, method, properties, body):
+    """
+    Event từ Order Service khi đơn hàng bị hủy.
+    Routing Key: order.cancelled
+    → Đánh dấu Shipment tương ứng là 'failed' (hủy vận chuyển).
+    """
+    data = json.loads(body)
+    order_id = data.get('order_id')
+    try:
+        shipment = Shipment.objects.get(order_id=order_id)
+        if shipment.status not in ('delivered', 'failed'):
+            shipment.status = 'failed'
+            shipment.notes = (shipment.notes or '') + ' | Đơn hàng đã bị hủy.'
+            shipment.save()
+            print(f"[Consumer] ❌ Shipment #{shipment.id} → failed (Order #{order_id} bị hủy)")
+    except Shipment.DoesNotExist:
+        print(f"[Consumer] ⚠️  Không tìm thấy Shipment cho Order #{order_id}")
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+
 def start_listening():
     connection = pika.BlockingConnection(pika.ConnectionParameters(
         host=os.environ.get('RABBITMQ_HOST', 'localhost')
@@ -96,9 +137,22 @@ def start_listening():
                        routing_key='payment.vnpay.confirmed')
     channel.basic_consume(queue='shipment_vnpay_queue', on_message_callback=on_payment_vnpay_confirmed)
 
-    print('[*] Shipment Consumer đang lắng nghe: order.cod.created | payment.vnpay.confirmed')
+    # Queue 3: Admin/Staff đánh dấu đơn hàng sẵn sàng giao
+    channel.queue_declare(queue='shipment_prepared_queue', durable=True)
+    channel.queue_bind(exchange='shop_events', queue='shipment_prepared_queue',
+                       routing_key='order.prepared')
+    channel.basic_consume(queue='shipment_prepared_queue', on_message_callback=on_order_prepared)
+
+    # Queue 4: Đơn hàng bị hủy → hủy vận chuyển
+    channel.queue_declare(queue='shipment_cancelled_queue', durable=True)
+    channel.queue_bind(exchange='shop_events', queue='shipment_cancelled_queue',
+                       routing_key='order.cancelled')
+    channel.basic_consume(queue='shipment_cancelled_queue', on_message_callback=on_order_cancelled)
+
+    print('[*] Shipment Consumer đang lắng nghe: order.cod.created | payment.vnpay.confirmed | order.prepared | order.cancelled')
     channel.start_consuming()
 
 
 if __name__ == '__main__':
     start_listening()
+

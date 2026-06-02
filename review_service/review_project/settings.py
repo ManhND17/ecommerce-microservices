@@ -51,12 +51,12 @@ WSGI_APPLICATION = 'review_project.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'review_db',
-        'USER': 'postgres',
-        'PASSWORD': 'password',
-        'HOST': 'review-db',
-        'PORT': '5432',
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.environ.get('DB_NAME', 'review_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', '123456'),
+        'HOST': os.environ.get('DB_HOST', 'review-db'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 

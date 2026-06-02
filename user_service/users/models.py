@@ -7,6 +7,7 @@ class User(AbstractUser):
         ('GUEST', 'Guest'),
         ('CUSTOMER', 'Customer'),
         ('ADMIN', 'Admin'),
+        ('STAFF', 'Staff')
     )
     
     full_name = models.CharField(max_length=255, blank=True, null=True)

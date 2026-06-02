@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('full_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('phone', models.CharField(blank=True, max_length=20, null=True)),
                 ('address', models.TextField(blank=True, null=True)),
-                ('role', models.CharField(choices=[('GUEST', 'Guest'), ('CUSTOMER', 'Customer'), ('ADMIN', 'Admin')], default='CUSTOMER', max_length=10)),
+                ('role', models.CharField(choices=[('GUEST', 'Guest'), ('CUSTOMER', 'Customer'), ('ADMIN', 'Admin'), ('STAFF', 'Staff')], default='CUSTOMER', max_length=10)),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
             ],

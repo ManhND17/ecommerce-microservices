@@ -255,6 +255,7 @@
             opacity: 1;
             transform: translateY(-50%) translateX(0);
         }
+
         /* Premium Notifications / Toast Alerts */
         .alerts {
             position: fixed;
@@ -274,7 +275,7 @@
             color: var(--text-main);
             padding: 18px 24px;
             border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.5);
             font-weight: 600;
             font-size: 0.95rem;
@@ -291,31 +292,51 @@
         .alert::before {
             content: '';
             position: absolute;
-            left: 0; top: 0; bottom: 0;
+            left: 0;
+            top: 0;
+            bottom: 0;
             width: 6px;
             background: var(--primary);
         }
 
-        .alert-error::before { background: #ef4444; }
-        .alert-warning::before { background: #f59e0b; }
+        .alert-error::before {
+            background: #ef4444;
+        }
+
+        .alert-warning::before {
+            background: #f59e0b;
+        }
 
         .alert-icon {
-            width: 32px; height: 32px;
+            width: 32px;
+            height: 32px;
             border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 1.2rem;
             flex-shrink: 0;
         }
-        .alert-success .alert-icon { background: rgba(5, 150, 105, 0.1); color: var(--primary); }
-        .alert-error .alert-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        .alert-success .alert-icon {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--primary);
+        }
+
+        .alert-error .alert-icon {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
 
         .alert-progress {
             position: absolute;
-            bottom: 0; left: 0;
+            bottom: 0;
+            left: 0;
             height: 3px;
             width: 100%;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
+
         .alert-progress-bar {
             height: 100%;
             width: 100%;
@@ -323,16 +344,31 @@
             transform-origin: left;
             animation: progress 2.5s linear forwards;
         }
-        .alert-error .alert-progress-bar { background: #ef4444; }
+
+        .alert-error .alert-progress-bar {
+            background: #ef4444;
+        }
 
         @keyframes toastIn {
-            from { transform: translateX(120%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @keyframes progress {
-            from { transform: scaleX(1); }
-            to { transform: scaleX(0); }
+            from {
+                transform: scaleX(1);
+            }
+
+            to {
+                transform: scaleX(0);
+            }
         }
 
         .alert.fade-out {
@@ -340,8 +376,16 @@
         }
 
         @keyframes toastOut {
-            from { transform: scale(1); opacity: 1; }
-            to { transform: scale(0.9); opacity: 0; filter: blur(10px); }
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: scale(0.9);
+                opacity: 0;
+                filter: blur(10px);
+            }
         }
     </style>
 </head>
@@ -358,7 +402,8 @@
 
         <div class="nav-links">
             {% if request.session.role == 'customer' or not request.session.role %}
-            <a href="{% url 'cart' %}" style="font-size: 0.9rem;">Giỏ hàng (<span id="cart-count">{% if request.session.cart %}{{ request.session.cart|length }}{% else %}0{% endif %}</span>)</a>
+            <a href="{% url 'cart' %}" style="font-size: 0.9rem;">Giỏ hàng (<span id="cart-count">{% if
+                    request.session.cart %}{{ request.session.cart|length }}{% else %}0{% endif %}</span>)</a>
             {% endif %}
 
             {% if request.session.user_id %}
@@ -383,6 +428,10 @@
                         style="display: block; padding: 12px 16px; color: var(--accent); text-decoration: none; font-size: 0.9rem; font-weight: 600; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;"
                         onmouseover="this.style.background='#f8fafc'"
                         onmouseout="this.style.background='transparent'">📊 Bảng Quản Trị</a>
+                    <!-- <a href="{% url 'shipper_dashboard' %}"
+                        style="display: block; padding: 12px 16px; color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 600; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;"
+                        onmouseover="this.style.background='#f8fafc'"
+                        onmouseout="this.style.background='transparent'">🚚 Bảng Shipper</a> -->
                     {% endif %}
                     <a href="{% url 'logout' %}"
                         style="display: block; padding: 12px 16px; color: #ef4444; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: background 0.2s;"
@@ -400,12 +449,14 @@
     <div class="alerts">
         {% if messages %}
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'success' }} {% if message.tags == 'error' %}alert-error{% endif %}">
+        <div
+            class="alert alert-{{ message.tags|default:'success' }} {% if message.tags == 'error' %}alert-error{% endif %}">
             <div class="alert-icon">
                 {% if message.tags == 'error' %}✕{% else %}✓{% endif %}
             </div>
             <div style="flex:1">{{ message }}</div>
-            <span style="cursor:pointer; opacity: 0.4; font-size: 1.2rem;" onclick="this.parentElement.classList.add('fade-out')">×</span>
+            <span style="cursor:pointer; opacity: 0.4; font-size: 1.2rem;"
+                onclick="this.parentElement.classList.add('fade-out')">×</span>
             <div class="alert-progress">
                 <div class="alert-progress-bar"></div>
             </div>
@@ -444,9 +495,9 @@
             const alert = document.createElement('div');
             alert.className = `alert alert-${type} ${type === 'error' ? 'alert-error' : ''} animate-up`;
             alert.style.display = 'flex';
-            
+
             const icon = type === 'error' ? '✕' : '✓';
-            
+
             alert.innerHTML = `
                 <div class="alert-icon">${icon}</div>
                 <div style="flex:1">${message}</div>
@@ -455,7 +506,7 @@
                     <div class="alert-progress-bar"></div>
                 </div>
             `;
-            
+
             container.appendChild(alert);
 
             // Auto remove
@@ -466,10 +517,10 @@
         }
 
         // Auto-hide existing alerts
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                setTimeout(function() {
+            alerts.forEach(function (alert) {
+                setTimeout(function () {
                     alert.classList.add('fade-out');
                     setTimeout(() => alert.remove(), 500);
                 }, 3000);

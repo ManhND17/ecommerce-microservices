@@ -271,8 +271,10 @@ def login_view(request):
                 messages.success(request, f'Đăng nhập thành công! Chào mừng {username}.')
 
                 # Điều hướng dựa trên Role
-                if role in ['admin', 'staff']:
+                if role == 'admin':
                     return redirect('dashboard')
+                elif role == 'staff':
+                    return redirect('shipper_dashboard')
                 
                 # Nếu là Customer, thực hiện logic khôi phục giỏ hàng
                 user_id = data.get('id')
@@ -1303,8 +1305,14 @@ def shipment_status_update_api(request, shipment_id):
     """
     if request.method != 'PATCH':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
-    if not request.session.get('user_id'):
+    
+    user_id = request.session.get('user_id')
+    role = str(request.session.get('role', 'customer')).lower()
+    if not user_id:
         return JsonResponse({'error': 'Bạn cần đăng nhập.'}, status=401)
+    
+    if role not in ['staff', 'admin']:
+        return JsonResponse({'error': 'Bạn không có quyền thực hiện thao tác này.'}, status=403)
 
     url = f"{SHIPMENT_SERVICE_URL}shipments/{shipment_id}/status/"
     try:
@@ -1350,3 +1358,43 @@ def review_list_create_api(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+def shipper_dashboard_view(request):
+    role = str(request.session.get('role', '')).lower()
+    if role not in ['staff', 'admin']:
+        return redirect('login')
+
+    shipments = []
+    orders_map = {}
+
+    try:
+        # Fetch shipments from shipment_service
+        ship_resp = requests.get(f"{SHIPMENT_SERVICE_URL}shipments/", timeout=5)
+        if ship_resp.status_code == 200:
+            shipments = ship_resp.json()
+            shipments.sort(key=lambda x: x.get('id', 0), reverse=True)
+    except Exception as e:
+        print(f"Error fetching shipments: {e}")
+
+    try:
+        # Fetch all orders to map customer and pricing details
+        order_resp = requests.get(f"{ORDER_SERVICE_URL}orders/", timeout=5)
+        if order_resp.status_code == 200:
+            for order in order_resp.json():
+                orders_map[str(order.get('id'))] = order
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+
+    # Combine shipment with order receiver details
+    for shipment in shipments:
+        order_id = str(shipment.get('order_id'))
+        order_info = orders_map.get(order_id, {})
+        shipment['receiver_name'] = order_info.get('receiver_name', 'Khách hàng')
+        shipment['receiver_phone'] = order_info.get('receiver_phone', '')
+        shipment['receiver_address'] = order_info.get('receiver_address', '')
+        shipment['total_price'] = order_info.get('total_price', 0)
+
+    return render(request, 'gateway/shipper_dashboard.html', {
+        'shipments': shipments
+    })
