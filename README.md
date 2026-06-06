@@ -4,24 +4,25 @@ TechNova is a robust, scalable e-commerce platform built using a microservices a
 
 ## 🏗️ Architecture Overview
 
-The system consists of several independent microservices:
+The system has been recently refactored to separate the frontend from the API gateway. It consists of the following independent microservices:
 
-| Service | Responsibility | Port | Database |
+| Service | Responsibility | Port | Database / Tech |
 | :--- | :--- | :--- | :--- |
-| **API Gateway** | Entry point, authentication, routing, and log tracking. | 9000 | PostgreSQL (`log_tracking_db`) |
+| **API Gateway** | Entry point, routing, and reverse proxy (Nginx). | 9000 | Nginx |
+| **Frontend Service** | User interface, web views, and main entry point. | 9010 | PostgreSQL (`log_tracking_db`) |
 | **User Service** | Manages users, authentication (JWT), and profiles. | 9001 | MySQL (`user_db`) |
 | **Order Service** | Handles order creation, status management, and history. | 9002 | PostgreSQL (`order_db`) |
 | **Payment Service** | Integrates with payment providers (e.g., VNPay). | 9003 | PostgreSQL (`payment_db`) |
 | **Shipment Service** | Manages shipping status and tracking. | 9004 | PostgreSQL (`shipment_db`) |
 | **AI Service** | Product recommendations and search using Graph DB & Gemini. | 9005 | Neo4j |
 | **Cart Service** | Manages user shopping carts. | 9006 | PostgreSQL (`cart_db`) |
-| **Behavior Service** | Tracks user interactions for analytics. | 9007 | PostgreSQL (`behavior_db`) |
 | **Product Service** | Catalog management, inventory, and categories. | 9008 | PostgreSQL (`product_db`) |
 | **Review Service** | Product reviews and ratings. | 9009 | PostgreSQL (`review_db`) |
 
 ## 🛠️ Technology Stack
 
 - **Framework**: Django, Django REST Framework
+- **Proxy**: Nginx (API Gateway)
 - **Messaging**: RabbitMQ (Message Broker)
 - **Databases**: 
   - **Relational**: PostgreSQL, MySQL
@@ -44,7 +45,7 @@ Follow these steps to set up and run the project locally.
 Since many services connect to `host.docker.internal`, you must create the following databases on your host machine:
 
 **On PostgreSQL (5432):**
-- `product_db`, `cart_db`, `order_db`, `payment_db`, `shipment_db`, `behavior_db`, `log_tracking_db`
+- `product_db`, `cart_db`, `order_db`, `payment_db`, `shipment_db`, `log_tracking_db`
 
 **On MySQL (3306):**
 - `user_db`
@@ -58,14 +59,14 @@ Check the `.env` file in the root directory. Ensure your `GEMINI_API_KEY` is set
 Open your terminal in the root directory and run:
 
 ```bash
-docker-compose up --build
+docker compose up -d
 ```
 
-This command will build the microservices, start RabbitMQ, Neo4j, and the services. It also runs database migrations automatically.
+This command will build the microservices, start RabbitMQ, Neo4j, and the services in detached mode. It also runs database migrations automatically.
 
 ### 🌐 Step 4: Access the Application
-- **Admin Dashboard**: [http://localhost:9000/dashboard/](http://localhost:9000/dashboard/)
-- **API Gateway**: [http://localhost:9000/](http://localhost:9000/)
+- **Main Website (via API Gateway)**: [http://localhost:9000/](http://localhost:9000/)
+- **Frontend Service Direct**: [http://localhost:9010/](http://localhost:9010/)
 - **RabbitMQ Management**: [http://localhost:15673/](http://localhost:15673/) (Default login: `guest`/`guest`)
 
 ---
@@ -73,5 +74,6 @@ This command will build the microservices, start RabbitMQ, Neo4j, and the servic
 ## 💡 Notes
 - **Migrations**: On the first run, Django will automatically migrate schemas to your local databases.
 - **Service Communication**: Services communicate asynchronously via RabbitMQ exchanges.
+- **Port Conflict Fix**: The RabbitMQ host port mapping has been changed to `6672:5672` to avoid Windows Hyper-V port reservation conflicts.
 - **Superuser**: To create an admin account for the user service:
   `docker exec -it <user-service-container-id> python user_service/manage.py createsuperuser`
