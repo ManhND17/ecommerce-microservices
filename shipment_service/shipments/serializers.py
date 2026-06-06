@@ -45,3 +45,15 @@ class ShipmentStatusUpdateSerializer(serializers.Serializer):
                 f"Hợp lệ: {allowed}"
             )
         return attrs
+
+
+class ShipmentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shipment
+        fields = ['order_id', 'user_id', 'method', 'receiver_name',
+                  'receiver_phone', 'receiver_address', 'notes', 'estimated_date']
+    
+    def validate_order_id(self, value):
+        if Shipment.objects.filter(order_id=value).exists():
+            raise serializers.ValidationError(f"Đã tồn tại vận đơn cho Order #{value}.")
+        return value

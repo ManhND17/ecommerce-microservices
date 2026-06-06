@@ -1,0 +1,431 @@
+{% extends 'frontend_app/shared/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<style>
+    /* Dashboard Layout: Sidebar sát lề trái */
+    .dashboard-container {
+        display: flex;
+        min-height: calc(100vh - 80px);
+        gap: 0;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar {
+        width: 260px;
+        background: white;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem 0.8rem;
+        gap: 0.4rem;
+        flex-shrink: 0;
+        position: sticky;
+        top: 80px;
+        height: calc(100vh - 80px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-x: hidden;
+        z-index: 100;
+    }
+
+    .sidebar.collapsed {
+        width: 80px;
+    }
+
+    .sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+    }
+
+    .sidebar.collapsed .sidebar-header {
+        justify-content: center;
+        padding: 0 0 1.5rem;
+    }
+
+    .sidebar-brand {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        white-space: nowrap;
+        transition: all 0.2s;
+    }
+
+    .sidebar.collapsed .sidebar-brand {
+        display: none;
+    }
+
+    .toggle-btn {
+        background: #f1f5f9;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .nav-item:hover {
+        background: #f8fafc;
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+
+    .nav-item.active {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+
+    .sidebar.collapsed .nav-item span:not(.nav-icon) {
+        display: none;
+    }
+
+    .sidebar.collapsed .nav-item {
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .nav-icon {
+        font-size: 1.25rem;
+        width: 24px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .main-content {
+        flex: 1;
+        padding: 2rem 3rem;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+</style>
+
+<div class="dashboard-container animate-up">
+    <!-- Sidebar Collapsible -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">Quản trị viên</div>
+            <button class="toggle-btn" onclick="toggleSidebar()">
+                <span id="toggle-icon">❮</span>
+            </button>
+        </div>
+        
+        <a href="{% url 'dashboard' %}" class="nav-item">
+            <span class="nav-icon">📦</span>
+            <span>Sản phẩm</span>
+        </a>
+        
+        <a href="{% url 'admin_orders' %}" class="nav-item active">
+            <span class="nav-icon">📋</span>
+            <span>Đơn hàng</span>
+        </a>
+        
+        <a href="{% url 'admin_customers' %}" class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span>Khách hàng</span>
+        </a>
+
+        <a href="{% url 'admin_staff' %}" class="nav-item">
+            <span class="nav-icon">👔</span>
+            <span>Nhân viên</span>
+        </a>
+        
+        <a href="{% url 'admin_stats' %}" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span>Thống kê</span>
+        </a>
+    </aside>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const icon = document.getElementById('toggle-icon');
+            const isCollapsed = sidebar.classList.toggle('collapsed');
+            
+            icon.innerText = isCollapsed ? '❯' : '❮';
+            localStorage.setItem('admin_sidebar_collapsed', isCollapsed);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('toggle-icon').innerText = '❯';
+            }
+        });
+    </script>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Quản Lý Đơn Hàng</h1>
+            <p style="color: var(--text-muted);">Cập nhật trạng thái và theo dõi đơn hàng của khách hàng.</p>
+        </div>
+
+        <div class="glass-card" style="background: white; padding: 0; overflow: hidden;">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="background: #fafafa; border-bottom: 2px solid #f1f5f9;">
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Mã ĐH</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Khách hàng</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Tổng tiền</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Thanh toán</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Trạng thái</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;">
+                            <td style="padding: 1.2rem 1.5rem; font-weight: 700; color: var(--text-main);">#{{ order.id }}</td>
+                            <td style="padding: 1.2rem 1.5rem;">
+                                <div style="font-weight: 600; color: var(--text-main);">{{ order.receiver_name|default:"Không có tên" }}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">{{ order.receiver_phone|default:"" }}</div>
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem; font-weight: 800; color: var(--primary);">
+                                {{ order.total_price|floatformat:"0"|intcomma }} đ
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem;">
+                                {% if order.payment_method == 'vnpay' %}
+                                    <span class="tag" style="background: #e0e7ff; color: #4338ca;">VNPay</span>
+                                {% else %}
+                                    <span class="tag" style="background: #f3f4f6; color: #4b5563;">COD</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem;">
+                                <span class="tag" style="
+                                    {% if order.status == 'pending' %} background: #fef3c7; color: #d97706;
+                                    {% elif order.status == 'preparing' %} background: #e0f2fe; color: #0284c7;
+                                    {% elif order.status == 'prepared' %} background: #ffedd5; color: #c2410c;
+                                    {% elif order.status == 'shipping' %} background: #f3e8ff; color: #7e22ce;
+                                    {% elif order.status == 'delivered' %} background: #dcfce3; color: #15803d;
+                                    {% elif order.status == 'cancelled' %} background: #fee2e2; color: #b91c1c;
+                                    {% else %} background: #f1f5f9; color: #475569;
+                                    {% endif %}">
+                                    {{ order.status|upper }}
+                                </span>
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem; display: flex; gap: 8px;">
+                                <select class="status-select" data-id="{{ order.id }}" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; background: #f8fafc; cursor: pointer;">
+                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Chờ xử lý</option>
+                                    <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>Đang chuẩn bị</option>
+                                    <option value="prepared" {% if order.status == 'prepared' %}selected{% endif %}>Đã chuẩn bị</option>
+                                    <option value="shipping" {% if order.status == 'shipping' %}selected{% endif %}>Đang giao</option>
+                                    <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Đã giao</option>
+                                    <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                                </select>
+                                <button class="btn-detail" data-id="{{ order.id }}" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--primary); color: var(--primary); background: transparent; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: 0.2s;" onmouseover="this.style.background='var(--primary)'; this.style.color='white';" onmouseout="this.style.background='transparent'; this.style.color='var(--primary)';">Chi tiết</button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="padding: 3rem; text-align: center; color: var(--text-muted);">Không có đơn hàng nào.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination Controls -->
+            {% if orders.has_other_pages %}
+            <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; padding: 1.5rem; border-top: 1px solid #f1f5f9; background: #fafafa;">
+                {% if orders.has_previous %}
+                    <a href="?page={{ orders.previous_page_number }}" class="btn-page">❮</a>
+                {% endif %}
+
+                {% for i in orders.paginator.page_range %}
+                    {% if orders.number == i %}
+                        <span class="btn-page active">{{ i }}</span>
+                    {% else %}
+                        <a href="?page={{ i }}" class="btn-page">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if orders.has_next %}
+                    <a href="?page={{ orders.next_page_number }}" class="btn-page">❯</a>
+                {% endif %}
+            </div>
+            <style>
+                .btn-page {
+                    width: 36px;
+                    height: 36px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 10px;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    color: var(--text-main);
+                    text-decoration: none;
+                    font-weight: 700;
+                    font-size: 0.9rem;
+                    transition: all 0.2s;
+                }
+                .btn-page:hover {
+                    border-color: var(--primary);
+                    color: var(--primary);
+                }
+                .btn-page.active {
+                    background: var(--primary);
+                    color: white;
+                    border-color: var(--primary);
+                }
+            </style>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<script>
+document.querySelectorAll('.status-select').forEach(select => {
+    select.addEventListener('change', async function() {
+        const orderId = this.getAttribute('data-id');
+        const newStatus = this.value;
+        
+        try {
+            const res = await fetch(`/api/orders/${orderId}/status/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            
+            if (res.ok) {
+                showToast('Cập nhật trạng thái thành công!', 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                const data = await res.json();
+                let errorMsg = data.error || data.detail || "";
+                if (data.non_field_errors) {
+                    errorMsg = data.non_field_errors.join(". ");
+                } else if (typeof data === 'object' && !data.error) {
+                    errorMsg = Object.values(data).flat().join(". ");
+                }
+                showToast(errorMsg || 'Không thể cập nhật trạng thái này.', 'error');
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        } catch(e) {
+            showToast('Lỗi kết nối hệ thống', 'error');
+            setTimeout(() => window.location.reload(), 1000);
+        }
+    });
+});
+</script>
+<!-- Order Detail Modal -->
+<div id="orderDetailModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div style="background: white; border-radius: 20px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; padding: 2rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-main);">Chi tiết đơn hàng <span id="modalOrderId" style="color: var(--primary);"></span></h2>
+            <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+        </div>
+        <div id="modalContent">
+            <!-- Loading or content here -->
+        </div>
+    </div>
+</div>
+
+<script>
+function closeModal() {
+    document.getElementById('orderDetailModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('orderDetailModal');
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+
+document.querySelectorAll('.btn-detail').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const orderId = this.getAttribute('data-id');
+        document.getElementById('modalOrderId').innerText = '#' + orderId;
+        document.getElementById('modalContent').innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Đang tải...</div>';
+        document.getElementById('orderDetailModal').style.display = 'flex';
+        
+        try {
+            const res = await fetch(`/api/orders/${orderId}/`);
+            if (res.ok) {
+                const order = await res.json();
+                
+                let itemsHtml = '';
+                if (order.items && order.items.length > 0) {
+                    itemsHtml = order.items.map(item => `
+                        <div style="display: flex; gap: 15px; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px dashed #e2e8f0;">
+                            <img src="${item.image_url || 'https://via.placeholder.com/80'}" onerror="this.src='https://via.placeholder.com/80'" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; color: var(--text-main);">${item.product_name || 'Sản phẩm'}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">Số lượng: ${item.quantity}</div>
+                                <div style="font-weight: 800; color: var(--primary); margin-top: 5px;">
+                                    ${Number(item.unit_price).toLocaleString('vi-VN')} đ
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    itemsHtml = '<p style="color: var(--text-muted);">Không có sản phẩm nào.</p>';
+                }
+
+                const contentHtml = `
+                    <div style="margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-main);">Thông tin giao hàng</h3>
+                        <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; font-size: 0.95rem; color: var(--text-main);">
+                            <p style="margin: 0 0 5px;"><strong>Người nhận:</strong> ${order.receiver_name || 'Không có'}</p>
+                            <p style="margin: 0 0 5px;"><strong>Điện thoại:</strong> ${order.receiver_phone || 'Không có'}</p>
+                            <p style="margin: 0;"><strong>Địa chỉ:</strong> ${order.receiver_address || 'Không có'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-main);">Danh sách sản phẩm</h3>
+                        ${itemsHtml}
+                    </div>
+                    <div style="text-align: right; margin-top: 1.5rem; font-size: 1.2rem; font-weight: 800; color: var(--primary);">
+                        Tổng cộng: ${Number(order.total_price).toLocaleString('vi-VN')} đ
+                    </div>
+                `;
+                document.getElementById('modalContent').innerHTML = contentHtml;
+            } else {
+                document.getElementById('modalContent').innerHTML = '<div style="color: red; text-align: center; padding: 2rem;">Không thể tải chi tiết đơn hàng.</div>';
+            }
+        } catch(e) {
+            document.getElementById('modalContent').innerHTML = '<div style="color: red; text-align: center; padding: 2rem;">Lỗi kết nối hệ thống.</div>';
+        }
+    });
+});
+</script>
+{% endblock %}

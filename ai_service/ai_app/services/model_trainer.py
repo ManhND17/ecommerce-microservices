@@ -242,21 +242,36 @@ def _save_training_plots(
 
     n_models = len(histories)
 
-    # ── Biểu đồ 1: Accuracy Curves ───────────────────────────────────────────
-    fig, axes = plt.subplots(1, n_models, figsize=(6 * n_models, 5))
+    # ── Biểu đồ 1: Loss & Accuracy Curves ────────────────────────────────────
+    fig, axes = plt.subplots(2, n_models, figsize=(6 * n_models, 10))
+    # Chắc chắn axes luôn là mảng 2 chiều (2, n_models)
     if n_models == 1:
-        axes = [axes]
+        axes = np.array([[axes[0]], [axes[1]]])
+    elif axes.ndim == 1:
+        axes = np.array([axes[0:n_models], axes[n_models:]]) # Fallback nếu subplot reshape sai
 
-    for ax, (name, hist) in zip(axes, histories.items()):
-        ax.plot(hist.get("accuracy", []), label="Train", linewidth=2, color="#4C72B0")
-        ax.plot(hist.get("val_accuracy", []), label="Val", linewidth=2, color="#C44E52")
-        ax.set_title(f"{name} — Learning Curve", fontsize=13)
-        ax.set_xlabel("Epoch")
-        ax.set_ylabel("Accuracy")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+    for col, (name, hist) in enumerate(histories.items()):
+        # Loss Curve
+        ax_loss = axes[0, col]
+        ax_loss.plot(hist.get("loss", []), label="Train Loss", linewidth=2, color="#4C72B0")
+        ax_loss.plot(hist.get("val_loss", []), label="Val Loss", linewidth=2, color="#C44E52")
+        ax_loss.set_title(f"{name} — Loss Curve", fontsize=13)
+        ax_loss.set_xlabel("Epoch")
+        ax_loss.set_ylabel("Loss")
+        ax_loss.legend()
+        ax_loss.grid(True, alpha=0.3)
 
-    fig.suptitle("Training Accuracy: RNN vs LSTM vs biLSTM", fontsize=15)
+        # Accuracy Curve
+        ax_acc = axes[1, col]
+        ax_acc.plot(hist.get("accuracy", []), label="Train Acc", linewidth=2, color="#4C72B0")
+        ax_acc.plot(hist.get("val_accuracy", []), label="Val Acc", linewidth=2, color="#C44E52")
+        ax_acc.set_title(f"{name} — Accuracy Curve", fontsize=13)
+        ax_acc.set_xlabel("Epoch")
+        ax_acc.set_ylabel("Accuracy")
+        ax_acc.legend()
+        ax_acc.grid(True, alpha=0.3)
+
+    fig.suptitle("Training Curves (Loss & Accuracy): RNN vs LSTM vs biLSTM", fontsize=15)
     plt.tight_layout()
     path1 = os.path.join(config.PLOTS_DIR, "training_curves.png")
     plt.savefig(path1, dpi=PLOT_DPI)
@@ -266,16 +281,17 @@ def _save_training_plots(
     # ── Biểu đồ 2: Model Comparison Bar Chart ────────────────────────────────
     model_names = list(results.keys())
     metrics = ["accuracy", "f1_score", "auc"]
+    metric_labels = ["VAL ACCURACY", "F1-MACRO", "AUC"]
     metric_colors = ["#4C72B0", "#55A868", "#C44E52"]
     x = np.arange(len(model_names))
     bar_width = 0.25
 
     fig, ax = plt.subplots(figsize=(11, 6))
-    for i, (metric, color) in enumerate(zip(metrics, metric_colors)):
+    for i, (metric, label, color) in enumerate(zip(metrics, metric_labels, metric_colors)):
         values = [results[name][metric] for name in model_names]
         bars = ax.bar(
             x + i * bar_width, values, bar_width,
-            label=metric.upper(), color=color, alpha=0.85
+            label=label, color=color, alpha=0.85
         )
         for bar in bars:
             ax.annotate(
@@ -400,7 +416,7 @@ def train_deep_models() -> dict:
         y_pred = np.argmax(y_prob, axis=1)
 
         acc = accuracy_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0)
+        f1 = f1_score(y_test, y_pred, average="macro", zero_division=0)
 
         try:
             auc = roc_auc_score(

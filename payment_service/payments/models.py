@@ -7,16 +7,19 @@ class Payment(models.Model):
         ('success', 'Thanh toán thành công'),
         ('failed', 'Thanh toán thất bại'),
         ('refunded', 'Đã hoàn tiền'),
+        ('cod_pending', 'COD - Chờ thu tiền'),
+        ('cod_collected', 'COD - Đã thu tiền'),
     )
     METHOD_CHOICES = (
         ('vnpay', 'VNPay'),
+        ('cod', 'Thanh toán khi nhận hàng'),
     )
 
     order_id = models.IntegerField(db_index=True)        # Logical FK → Order Service
     user_id = models.IntegerField(db_index=True)         # Logical FK → Customer Service
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     method = models.CharField(max_length=10, choices=METHOD_CHOICES, default='vnpay')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
 
     # VNPay transaction info
     vnpay_txn_ref = models.CharField(max_length=100, unique=True, null=True, blank=True)

@@ -3,13 +3,15 @@ from .models import CartItem
 
 
 class CartItemSerializer(serializers.ModelSerializer):
+    cart_id = serializers.IntegerField(source='cart.id', read_only=True)
+
     class Meta:
         model = CartItem
         fields = [
-            'id', 'user_id', 'product_id', 'product_type',
+            'id', 'cart_id', 'user_id', 'product_id', 'product_type',
             'product_name', 'price', 'quantity', 'size', 'image_url', 'updated_at'
         ]
-        read_only_fields = ['id', 'updated_at']
+        read_only_fields = ['id', 'cart_id', 'updated_at']
 
 
 class UpsertCartItemSerializer(serializers.Serializer):

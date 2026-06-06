@@ -38,6 +38,9 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product_id = models.CharField(max_length=100)  # Logical FK – không ràng buộc DB thật
+    product_name = models.CharField(max_length=255, blank=True, default='')  # [NEW]
+    product_type = models.CharField(max_length=50, blank=True, default='')   # [NEW]
+    image_url = models.URLField(max_length=500, blank=True, default='')      # [NEW]
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 

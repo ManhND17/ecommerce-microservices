@@ -63,37 +63,40 @@ def _build_product_description(product: dict, hot_meta: Dict[str, int]) -> str:
     desc      = product.get("description", "")
     attrs     = product.get("specific_attributes", {}) or {}
 
+    def get_attr(key: str) -> str:
+        return str(attrs.get(key) or product.get(key, ''))
+
     if cat == "laptop":
         text = (
             f"Laptop {name} "
-            f"CPU {attrs.get('cpu', '')} "
-            f"RAM {attrs.get('ram', '')} "
-            f"SSD {attrs.get('ssd', '')} "
-            f"Màn hình {attrs.get('screen', '')} "
+            f"CPU {get_attr('cpu')} "
+            f"RAM {get_attr('ram')} "
+            f"SSD {get_attr('ssd') or get_attr('storage')} "
+            f"Màn hình {get_attr('screen') or get_attr('screen_size')} "
             f"Giá {price} VNĐ"
         )
     elif cat == "mobile":
         text = (
             f"Điện thoại {name} "
-            f"Chip {attrs.get('chip', '')} "
-            f"Camera {attrs.get('camera', '')} "
-            f"Màn hình {attrs.get('screen', '')} "
-            f"Pin {attrs.get('battery', '')} "
+            f"Chip {get_attr('chip') or get_attr('cpu')} "
+            f"Camera {get_attr('camera')} "
+            f"Màn hình {get_attr('screen') or get_attr('screen_size')} "
+            f"Pin {get_attr('battery')} "
             f"Giá {price} VNĐ"
         )
     elif cat in ("books", "book"):
         text = (
             f"Sách '{name}' "
-            f"tác giả {attrs.get('author', '')} "
-            f"thể loại {attrs.get('genre', cat)} "
+            f"tác giả {get_attr('author')} "
+            f"thể loại {get_attr('genre') or cat} "
             f"{desc} "
             f"Giá {price} VNĐ"
         )
-    elif cat == "clothes":
+    elif cat == "clothes" or cat == "fashion":
         text = (
             f"Thời trang {name} "
-            f"chất liệu {attrs.get('material', '')} "
-            f"kích cỡ {attrs.get('size', '')} "
+            f"chất liệu {get_attr('material')} "
+            f"kích cỡ {get_attr('size') or get_attr('sizes')} "
             f"{desc} "
             f"Giá {price} VNĐ"
         )

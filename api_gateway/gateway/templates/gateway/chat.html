@@ -34,39 +34,75 @@
         flex-shrink: 0;
     }
 
-    .chat-header-left { display: flex; align-items: center; gap: 12px; }
+    .chat-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
     .bot-avatar {
-        width: 46px; height: 46px;
-        background: rgba(255,255,255,0.2);
+        width: 46px;
+        height: 46px;
+        background: rgba(255, 255, 255, 0.2);
         border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 1.4rem;
-        border: 2px solid rgba(255,255,255,0.3);
+        border: 2px solid rgba(255, 255, 255, 0.3);
     }
-    .bot-name { font-weight: 800; font-size: 1.1rem; }
+
+    .bot-name {
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
     .bot-status {
-        font-size: 0.75rem; opacity: 0.85;
-        display: flex; align-items: center; gap: 5px; margin-top: 2px;
+        font-size: 0.75rem;
+        opacity: 0.85;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 2px;
     }
+
     .status-dot {
-        width: 7px; height: 7px;
-        background: #4ade80; border-radius: 50%;
+        width: 7px;
+        height: 7px;
+        background: #4ade80;
+        border-radius: 50%;
         animation: pulse 2s infinite;
     }
 
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+    }
 
     .gemini-badge {
-        display: flex; align-items: center; gap: 6px;
-        background: rgba(255,255,255,0.15);
-        border: 1px solid rgba(255,255,255,0.25);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
         border-radius: 20px;
         padding: 5px 14px;
         font-size: 0.78rem;
         font-weight: 700;
         backdrop-filter: blur(4px);
     }
-    .gemini-badge.active { background: rgba(99,102,241,0.35); border-color: rgba(165,180,252,0.5); }
+
+    .gemini-badge.active {
+        background: rgba(99, 102, 241, 0.35);
+        border-color: rgba(165, 180, 252, 0.5);
+    }
 
     /* ── Messages Area ───────────────────────────────────── */
     .chat-messages {
@@ -80,22 +116,34 @@
         scroll-behavior: smooth;
     }
 
-    .message { display: flex; flex-direction: column; max-width: 88%; }
-    .message.user { align-self: flex-end; }
-    .message.ai { align-self: flex-start; }
+    .message {
+        display: flex;
+        flex-direction: column;
+        max-width: 88%;
+    }
+
+    .message.user {
+        align-self: flex-end;
+    }
+
+    .message.ai {
+        align-self: flex-start;
+    }
 
     .message-bubble {
         padding: 14px 20px;
         border-radius: 20px;
         font-size: 0.97rem;
         line-height: 1.65;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
+
     .message.user .message-bubble {
         background: linear-gradient(135deg, #059669, #047857);
         color: white;
         border-bottom-right-radius: 5px;
     }
+
     .message.ai .message-bubble {
         background: white;
         color: var(--text-main);
@@ -115,14 +163,47 @@
         margin-bottom: 6px;
         width: fit-content;
     }
-    .intent-badge.price_filter   { background: #fef3c7; color: #92400e; }
-    .intent-badge.brand_filter   { background: #ede9fe; color: #5b21b6; }
-    .intent-badge.comparison     { background: #e0f2fe; color: #0c4a6e; }
-    .intent-badge.spec_query     { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .intent-badge.recommendation { background: #fdf4ff; color: #7e22ce; }
-    .intent-badge.category       { background: #fff7ed; color: #c2410c; }
-    .intent-badge.greeting       { background: #f0fdf4; color: #15803d; }
-    .intent-badge.general        { background: #f8fafc; color: #475569; }
+
+    .intent-badge.price_filter {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .intent-badge.brand_filter {
+        background: #ede9fe;
+        color: #5b21b6;
+    }
+
+    .intent-badge.comparison {
+        background: #e0f2fe;
+        color: #0c4a6e;
+    }
+
+    .intent-badge.spec_query {
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .intent-badge.recommendation {
+        background: #fdf4ff;
+        color: #7e22ce;
+    }
+
+    .intent-badge.category {
+        background: #fff7ed;
+        color: #c2410c;
+    }
+
+    .intent-badge.greeting {
+        background: #f0fdf4;
+        color: #15803d;
+    }
+
+    .intent-badge.general {
+        background: #f8fafc;
+        color: #475569;
+    }
 
     /* ── Gemini Indicator ────────────────────────────────── */
     .gemini-indicator {
@@ -130,7 +211,9 @@
         color: #6366f1;
         font-weight: 600;
         margin-top: 5px;
-        display: flex; align-items: center; gap: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
         opacity: 0.8;
     }
 
@@ -151,85 +234,170 @@
         padding: 10px;
         border: 1px solid #e2e8f0;
         transition: all 0.2s;
-        display: flex; flex-direction: column; gap: 7px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
         cursor: pointer;
     }
+
     .inline-product-card:hover {
         border-color: var(--primary);
         background: white;
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(5,150,105,0.12);
+        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.12);
     }
 
     .product-img-wrap {
-        height: 80px; display: flex; align-items: center;
-        justify-content: center; background: white;
-        border-radius: 10px; overflow: hidden;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
     }
-    .product-img-wrap img { max-width: 90%; max-height: 90%; object-fit: contain; }
+
+    .product-img-wrap img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+    }
 
     .product-name-mini {
-        font-weight: 700; font-size: 0.72rem;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        font-weight: 700;
+        font-size: 0.72rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         color: var(--text-main);
     }
-    .product-price-mini { color: #ef4444; font-weight: 800; font-size: 0.82rem; }
-    .product-actions { display: flex; gap: 5px; margin-top: 2px; }
+
+    .product-price-mini {
+        color: #ef4444;
+        font-weight: 800;
+        font-size: 0.82rem;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 5px;
+        margin-top: 2px;
+    }
 
     .btn-mini {
-        flex: 1; padding: 5px 4px;
-        font-size: 0.7rem; font-weight: 700;
-        border-radius: 7px; cursor: pointer;
-        border: none; transition: all 0.2s;
+        flex: 1;
+        padding: 5px 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 7px;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
         font-family: inherit;
     }
-    .btn-mini-outline { background: #f1f5f9; color: var(--text-main); border: 1px solid #e2e8f0; }
-    .btn-mini-primary { background: var(--primary); color: white; }
-    .btn-mini:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    .btn-mini-outline {
+        background: #f1f5f9;
+        color: var(--text-main);
+        border: 1px solid #e2e8f0;
+    }
+
+    .btn-mini-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-mini:hover {
+        opacity: 0.85;
+        transform: translateY(-1px);
+    }
 
     /* ── Typing indicator ────────────────────────────────── */
     .typing-indicator {
         display: none;
-        align-items: center; gap: 8px;
+        align-items: center;
+        gap: 8px;
         padding: 0 28px 12px;
         flex-shrink: 0;
     }
-    .typing-dots { display: flex; gap: 4px; }
+
+    .typing-dots {
+        display: flex;
+        gap: 4px;
+    }
+
     .typing-dots span {
-        width: 8px; height: 8px; background: #94a3b8;
+        width: 8px;
+        height: 8px;
+        background: #94a3b8;
         border-radius: 50%;
         animation: bounce 1.4s infinite;
     }
-    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
-    .typing-text { font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
+
+    .typing-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        60%,
+        100% {
+            transform: translateY(0);
+        }
+
+        30% {
+            transform: translateY(-8px);
+        }
+    }
+
+    .typing-text {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        font-style: italic;
+    }
 
     /* ── Footer / Input ──────────────────────────────────── */
     .chat-footer {
         padding: 16px 24px 20px;
-        background: rgba(255,255,255,0.9);
+        background: rgba(255, 255, 255, 0.9);
         border-top: 1px solid #f1f5f9;
         flex-shrink: 0;
     }
 
     .quick-actions {
-        display: flex; gap: 8px;
-        margin-bottom: 14px; flex-wrap: wrap;
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
     }
+
     .chip {
         padding: 5px 13px;
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 16px;
-        font-size: 0.8rem; font-weight: 600;
-        cursor: pointer; transition: all 0.2s;
-        white-space: nowrap; font-family: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        font-family: inherit;
     }
-    .chip:hover { border-color: var(--primary); color: var(--primary); background: #f0fdf9; }
+
+    .chip:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: #f0fdf9;
+    }
 
     .input-row {
-        display: flex; gap: 10px;
+        display: flex;
+        gap: 10px;
         background: #f8fafc;
         border: 1.5px solid #e2e8f0;
         border-radius: 14px;
@@ -237,127 +405,189 @@
         align-items: center;
         transition: border-color 0.2s;
     }
-    .input-row:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5,150,105,0.08); }
-    .input-row input {
-        flex: 1; background: transparent; border: none; outline: none;
-        font-family: inherit; font-size: 0.97rem; color: var(--text-main);
+
+    .input-row:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.08);
     }
-    .input-row input::placeholder { color: #94a3b8; }
+
+    .input-row input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-family: inherit;
+        font-size: 0.97rem;
+        color: var(--text-main);
+    }
+
+    .input-row input::placeholder {
+        color: #94a3b8;
+    }
 
     .send-btn {
         background: var(--primary);
-        color: white; border: none; border-radius: 10px;
-        padding: 9px 20px; font-weight: 700;
-        cursor: pointer; transition: all 0.2s;
-        font-family: inherit; font-size: 0.9rem;
-        display: flex; align-items: center; gap: 6px;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 9px 20px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
         flex-shrink: 0;
     }
-    .send-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .send-btn:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
 
     /* ── Toast ───────────────────────────────────────────── */
     .success-toast {
-        position: fixed; bottom: 90px; left: 50%;
+        position: fixed;
+        bottom: 90px;
+        left: 50%;
         transform: translateX(-50%);
-        background: #059669; color: white;
-        padding: 11px 24px; border-radius: 50px;
-        font-weight: 700; box-shadow: var(--shadow-lg);
-        z-index: 9999; display: none;
+        background: #059669;
+        color: white;
+        padding: 11px 24px;
+        border-radius: 50px;
+        font-weight: 700;
+        box-shadow: var(--shadow-lg);
+        z-index: 9999;
+        display: none;
         font-size: 0.9rem;
         animation: toastIn 0.3s ease;
     }
-    @keyframes toastIn { from { bottom: 60px; opacity: 0; } to { bottom: 90px; opacity: 1; } }
+
+    @keyframes toastIn {
+        from {
+            bottom: 60px;
+            opacity: 0;
+        }
+
+        to {
+            bottom: 90px;
+            opacity: 1;
+        }
+    }
 
     /* ── Welcome message ─────────────────────────────────── */
-    .welcome-msg { text-align: center; padding: 20px 0 10px; color: var(--text-muted); font-size: 0.88rem; }
-    .welcome-msg strong { color: var(--primary); }
+    .welcome-msg {
+        text-align: center;
+        padding: 20px 0 10px;
+        color: var(--text-muted);
+        font-size: 0.88rem;
+    }
+
+    .welcome-msg strong {
+        color: var(--primary);
+    }
 
     /* ── Scrollbar ───────────────────────────────────────── */
-    .chat-messages::-webkit-scrollbar { width: 5px; }
-    .chat-messages::-webkit-scrollbar-track { background: transparent; }
-    .chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .chat-messages::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
 </style>
 
 <div class="container animate-up" style="padding-top: 1rem; padding-bottom: 1rem;">
-<div class="chat-wrapper">
-    <div class="chat-main">
-        <!-- Header -->
-        <div class="chat-header">
-            <div class="chat-header-left">
-                <div class="bot-avatar">🤖</div>
-                <div>
-                    <div class="bot-name">TechNova Assistant</div>
-                    <div class="bot-status">
-                        <span class="status-dot"></span>
-                        AI trực tuyến • Powered by Gemini
+    <div class="chat-wrapper">
+        <div class="chat-main">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <div class="bot-avatar">🤖</div>
+                    <div>
+                        <div class="bot-name">TechNova Assistant</div>
+                        <div class="bot-status">
+                            <span class="status-dot"></span>
+                            AI trực tuyến
+                        </div>
+                    </div>
+                </div>
+                <div class="gemini-badge" id="geminiBadge">
+                    <span>✨</span> <span id="geminiLabel">Đang kết nối...</span>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="chat-messages" id="chatbox">
+                <div class="welcome-msg">
+                    Hôm nay <strong>TechNova Assistant</strong> có thể giúp gì cho bạn?
+                </div>
+                <div class="message ai">
+                    <div class="message-bubble">
+                        Xin chào! 👋 Tôi là <strong>TechNova Assistant</strong> — trợ lý mua sắm AI thông minh.
+                        Tôi có thể tư vấn laptop, điện thoại, sách và phụ kiện theo ngân sách của bạn.
+                        Hỏi tôi bất cứ điều gì nhé! 😊
                     </div>
                 </div>
             </div>
-            <div class="gemini-badge" id="geminiBadge">
-                <span>✨</span> <span id="geminiLabel">Đang kết nối...</span>
-            </div>
-        </div>
 
-        <!-- Messages -->
-        <div class="chat-messages" id="chatbox">
-            <div class="welcome-msg">
-                Hôm nay <strong>TechNova Assistant</strong> có thể giúp gì cho bạn?
+            <!-- Typing -->
+            <div class="typing-indicator" id="typing">
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="typing-text">AI đang suy nghĩ...</span>
             </div>
-            <div class="message ai">
-                <div class="intent-badge greeting">👋 Chào hỏi</div>
-                <div class="message-bubble">
-                    Xin chào! 👋 Tôi là <strong>TechNova Assistant</strong> — trợ lý mua sắm AI thông minh.
-                    Tôi có thể tư vấn laptop, điện thoại, sách và phụ kiện theo ngân sách của bạn.
-                    Hỏi tôi bất cứ điều gì nhé! 😊
+
+            <!-- Footer -->
+            <div class="chat-footer">
+                <div class="quick-actions" id="quickActions">
+                    <button class="chip" onclick="quickQuery('Laptop gaming dưới 20 triệu')">🔥 Laptop < 20tr</button>
+                            <button class="chip" onclick="quickQuery('Điện thoại Samsung camera tốt')">📸 Samsung
+                                Camera</button>
+                            <button class="chip" onclick="quickQuery('So sánh MacBook và Dell XPS')">⚖️ So sánh</button>
+                            <button class="chip" onclick="quickQuery('Gợi ý điện thoại tầm 10 triệu')">🎯 Gợi ý</button>
+                            <button class="chip" onclick="quickQuery('Laptop có RAM 16GB chip M2')">🔧 Thông số</button>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="userInput" placeholder="Hỏi về sản phẩm, giá cả, thông số kỹ thuật..."
+                        autocomplete="off" maxlength="500">
+                    <button class="send-btn" id="sendBtn">
+                        <span>Gửi</span> <span>➤</span>
+                    </button>
                 </div>
             </div>
         </div>
-
-        <!-- Typing -->
-        <div class="typing-indicator" id="typing">
-            <div class="typing-dots">
-                <span></span><span></span><span></span>
-            </div>
-            <span class="typing-text">AI đang suy nghĩ...</span>
-        </div>
-
-        <!-- Footer -->
-        <div class="chat-footer">
-            <div class="quick-actions" id="quickActions">
-                <button class="chip" onclick="quickQuery('Laptop gaming dưới 20 triệu')">🔥 Laptop < 20tr</button>
-                <button class="chip" onclick="quickQuery('Điện thoại Samsung camera tốt')">📸 Samsung Camera</button>
-                <button class="chip" onclick="quickQuery('So sánh MacBook và Dell XPS')">⚖️ So sánh</button>
-                <button class="chip" onclick="quickQuery('Gợi ý điện thoại tầm 10 triệu')">🎯 Gợi ý</button>
-                <button class="chip" onclick="quickQuery('Laptop có RAM 16GB chip M2')">🔧 Thông số</button>
-            </div>
-            <div class="input-row">
-                <input type="text" id="userInput"
-                       placeholder="Hỏi về sản phẩm, giá cả, thông số kỹ thuật..."
-                       autocomplete="off" maxlength="500">
-                <button class="send-btn" id="sendBtn">
-                    <span>Gửi</span> <span>➤</span>
-                </button>
-            </div>
-        </div>
     </div>
-</div>
 </div>
 
 <div class="success-toast" id="cartToast">✨ Đã thêm vào giỏ hàng!</div>
 
 <script>
     // ── Globals ──────────────────────────────────────────────────────────
-    const chatbox    = document.getElementById('chatbox');
-    const userInput  = document.getElementById('userInput');
-    const sendBtn    = document.getElementById('sendBtn');
-    const typing     = document.getElementById('typing');
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const typing = document.getElementById('typing');
     const geminiBadge = document.getElementById('geminiBadge');
     const geminiLabel = document.getElementById('geminiLabel');
 
     // Session ID: dùng timestamp + random để duy trì ngữ cảnh hội thoại
     const SESSION_ID = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const USER_ID    = {{ request.session.user_id|default:"null" }};
+    const USER_ID = {{ request.session.user_id|default: "null" }};
 
     let isLoading = false;
 
@@ -384,12 +614,12 @@
         if (sender === 'ai' && intentLabel) {
             const intentClass = intentLabel.includes('giá') ? 'price_filter'
                 : intentLabel.includes('thương hiệu') ? 'brand_filter'
-                : intentLabel.includes('So sánh') ? 'comparison'
-                : intentLabel.includes('Thông số') ? 'spec_query'
-                : intentLabel.includes('Gợi ý') ? 'recommendation'
-                : intentLabel.includes('danh mục') ? 'category'
-                : intentLabel.includes('Chào') ? 'greeting'
-                : 'general';
+                    : intentLabel.includes('So sánh') ? 'comparison'
+                        : intentLabel.includes('Thông số') ? 'spec_query'
+                            : intentLabel.includes('Gợi ý') ? 'recommendation'
+                                : intentLabel.includes('danh mục') ? 'category'
+                                    : intentLabel.includes('Chào') ? 'greeting'
+                                        : 'general';
             intentHtml = `<div class="intent-badge ${intentClass}">${intentLabel}</div>`;
         }
 
@@ -397,9 +627,9 @@
         if (products && products.length > 0) {
             const cards = products.slice(0, 4).map(p => {
                 const imgSrc = p.image_url || 'https://placehold.co/100x100?text=📦';
-                const pid    = String(p.id || '').split('_').pop();
-                const ptype  = p.type || 'laptop';
-                const name   = (p.name || 'Sản phẩm').replace(/'/g, "\\'");
+                const pid = String(p.id || '').split('_').pop();
+                const ptype = p.type || 'laptop';
+                const name = (p.name || 'Sản phẩm').replace(/'/g, "\\'");
                 return `
                     <div class="inline-product-card">
                         <div class="product-img-wrap">
@@ -421,10 +651,6 @@
             productHtml = `<div class="inline-product-grid">${cards}</div>`;
         }
 
-        let geminiHtml = '';
-        if (sender === 'ai' && geminiUsed) {
-            geminiHtml = `<div class="gemini-indicator">✨ Powered by Gemini AI</div>`;
-        }
 
         const textFormatted = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
@@ -468,16 +694,16 @@
                     countEl.textContent = cur + 1;
                 }
             }
-        } catch(e) { console.error('Cart error:', e); }
+        } catch (e) { console.error('Cart error:', e); }
     }
 
     // ── Update quick suggestions ──────────────────────────────────────────
     function updateQuickSuggestions(intent) {
         const suggestions = {
-            'price_filter':   ['Laptop dưới 15 triệu', 'Điện thoại dưới 8 triệu', 'Xem tất cả laptop'],
-            'brand_filter':   ['Samsung Galaxy S24', 'MacBook Pro M3', 'Dell XPS 15'],
-            'comparison':     ['So sánh iPhone và Samsung', 'MacBook hay ThinkPad', 'RAM 8GB vs 16GB'],
-            'spec_query':     ['Laptop RAM 32GB', 'Điện thoại pin 5000mAh', 'Laptop màn hình OLED'],
+            'price_filter': ['Laptop dưới 15 triệu', 'Điện thoại dưới 8 triệu', 'Xem tất cả laptop'],
+            'brand_filter': ['Samsung Galaxy S24', 'MacBook Pro M3', 'Dell XPS 15'],
+            'comparison': ['So sánh iPhone và Samsung', 'MacBook hay ThinkPad', 'RAM 8GB vs 16GB'],
+            'spec_query': ['Laptop RAM 32GB', 'Điện thoại pin 5000mAh', 'Laptop màn hình OLED'],
             'recommendation': ['Laptop cho sinh viên', 'Điện thoại dưới 10tr tốt nhất', 'Laptop văn phòng mỏng nhẹ'],
         };
 
@@ -504,7 +730,7 @@
 
         try {
             const payload = {
-                query:      text,
+                query: text,
                 session_id: SESSION_ID,
             };
             if (USER_ID) payload.user_id = USER_ID;
@@ -525,8 +751,8 @@
                     data.response,
                     'ai',
                     data.recommendations || [],
-                    data.intent_label   || '',
-                    data.gemini_used    || false,
+                    data.intent_label || '',
+                    data.gemini_used || false,
                 );
 
                 // Cập nhật Gemini badge
@@ -545,7 +771,7 @@
                 const errMsg = data.error || 'Dịch vụ AI đang bảo trì. Vui lòng thử lại sau.';
                 appendMessage(`⚠️ ${errMsg}`, 'ai');
             }
-        } catch(e) {
+        } catch (e) {
             appendMessage('❌ Lỗi kết nối. Hãy đảm bảo Docker đang chạy.', 'ai');
         } finally {
             isLoading = false;
@@ -574,7 +800,7 @@
                     geminiLabel.textContent = 'Đang khởi động...';
                 }
             }
-        } catch(e) {
+        } catch (e) {
             geminiLabel.textContent = 'Offline';
         }
     })();

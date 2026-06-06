@@ -4,7 +4,7 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Shipment
-from .serializers import ShipmentSerializer, ShipmentStatusUpdateSerializer
+from .serializers import ShipmentSerializer, ShipmentStatusUpdateSerializer, ShipmentCreateSerializer
 from .publishers import publish_event
 
 
@@ -21,6 +21,20 @@ class ShipmentListView(generics.ListAPIView):
         if user_id:
             qs = qs.filter(user_id=user_id)
         return qs
+
+
+class ShipmentCreateView(generics.CreateAPIView):
+    """
+    POST /api/shipments/
+    Staff/Admin tạo vận đơn thủ công (trường hợp consumer bị lỗi hoặc điều chỉnh).
+    Tự động sinh tracking_code.
+    """
+    serializer_class = ShipmentCreateSerializer
+    queryset = Shipment.objects.all()
+
+    def perform_create(self, serializer):
+        tracking = 'TN' + str(uuid.uuid4()).replace('-', '').upper()[:10]
+        serializer.save(tracking_code=tracking)
 
 
 class ShipmentDetailView(generics.RetrieveAPIView):

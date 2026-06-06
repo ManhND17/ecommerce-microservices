@@ -12,10 +12,44 @@ VALID_TRANSITIONS = {
 }
 
 
+import requests
+
+# Base URL for product service
+PRODUCT_SERVICE_BASE_URL = "http://product-service:9008/api/products/"
+
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
-        fields = ['product_id', 'quantity', 'unit_price']
+        fields = ['product_id', 'product_name', 'product_type', 'image_url', 'quantity', 'unit_price']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
+        # Fallback if product_name is missing
+        p_name = data.get('product_name', '').strip()
+        if not p_name or p_name == 'Sản phẩm':
+            try:
+                pid = str(data.get('product_id'))
+                clean_id = pid.split('_')[-1] if '_' in pid else pid
+                resp = requests.get(f"{PRODUCT_SERVICE_BASE_URL}{clean_id}/", timeout=2)
+                if resp.status_code == 200:
+                    prod_data = resp.json()
+                    new_name = prod_data.get('title') or prod_data.get('name') or 'Sản phẩm'
+                    img = prod_data.get('image_url') or prod_data.get('image') or prod_data.get('thumbnail') or ''
+                    if img and img.startswith('/media/'):
+                        img = f"http://localhost:9008{img}"
+                        
+                    data['product_name'] = new_name
+                    data['image_url'] = img
+                    
+                    # Cập nhật lại vào database để các lần gọi sau không cần fetch
+                    instance.product_name = new_name
+                    instance.image_url = img
+                    instance.save(update_fields=['product_name', 'image_url'])
+            except Exception as e:
+                print(f"Error fetching product fallback in order_service: {e}")
+                
+        return data
 
 
 class OrderSerializer(serializers.ModelSerializer):

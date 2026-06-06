@@ -11,8 +11,17 @@ PRODUCT_SERVICE_API = "http://product-service:9008/api/products/check-inventory/
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
-    queryset = Order.objects.all()
     serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        qs = Order.objects.prefetch_related('items').all()
+        user_id = self.request.query_params.get('user_id')
+        status  = self.request.query_params.get('status')
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if status:
+            qs = qs.filter(status=status)
+        return qs
 
     def create(self, request, *args, **kwargs):
         # 0. Bóc tách shipping_info từ request body

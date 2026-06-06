@@ -132,3 +132,16 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# ── JWT Verification (shared secret với User Service) ─────────────────────────
+# Dùng để verify token trong permissions.py — không cần kết nối DB User Service
+JWT_SECRET = os.environ.get('JWT_SECRET', 'super-secret-jwt-key-xyz')
+
+# ── REST Framework ────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [],   # Product Service tự verify JWT thủ công
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny'   # Default: đọc tự do, write dùng IsAdminOrStaff
+    ],
+}
+

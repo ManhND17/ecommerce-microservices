@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from .models import CartItem
+from .models import Cart, CartItem
 from .serializers import CartItemSerializer, UpsertCartItemSerializer
 
 
@@ -15,7 +15,8 @@ def cart_list(request):
     if not user_id:
         return Response({'error': 'user_id là bắt buộc.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    items = CartItem.objects.filter(user_id=user_id)
+    cart = Cart.objects.filter(user_id=user_id).first()
+    items = cart.items.all() if cart else CartItem.objects.none()
     serializer = CartItemSerializer(items, many=True)
     return Response(serializer.data)
 
@@ -32,12 +33,15 @@ def cart_upsert(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     data = serializer.validated_data
+    cart, _ = Cart.objects.get_or_create(user_id=data['user_id'])
+
     item, created = CartItem.objects.update_or_create(
-        user_id=data['user_id'],
+        cart=cart,
         product_id=data['product_id'],
         product_type=data['product_type'],
         size=data.get('size', ''),
         defaults={
+            'user_id': data['user_id'],
             'product_name': data['product_name'],
             'price': data['price'],
             'quantity': data['quantity'],
@@ -102,7 +106,11 @@ def cart_clear(request):
     if not user_id:
         return Response({'error': 'user_id là bắt buộc.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    deleted_count, _ = CartItem.objects.filter(user_id=user_id).delete()
+    cart = Cart.objects.filter(user_id=user_id).first()
+    if not cart:
+        return Response({'deleted': 0}, status=status.HTTP_200_OK)
+
+    deleted_count, _ = cart.items.all().delete()
     return Response({'deleted': deleted_count}, status=status.HTTP_200_OK)
 
 
@@ -120,8 +128,12 @@ def cart_item_delete_by_key(request):
     if not all([user_id, product_id, product_type]):
         return Response({'error': 'Thiếu tham số.'}, status=status.HTTP_400_BAD_REQUEST)
 
+    cart = Cart.objects.filter(user_id=user_id).first()
+    if not cart:
+        return Response({'deleted': 0}, status=status.HTTP_200_OK)
+
     deleted_count, _ = CartItem.objects.filter(
-        user_id=user_id,
+        cart=cart,
         product_id=product_id,
         product_type=product_type,
         size=size
