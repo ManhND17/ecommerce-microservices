@@ -250,7 +250,7 @@ async def start_sync_worker() -> None:
 # RAG Retrieval — Vector Similarity Search
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _rag_retrieve(query: str, n: int = 5) -> List[dict]:
+def _rag_retrieve(query: str, n: int = 5, category_filter: Optional[str] = None) -> List[dict]:
     if config.collection is None or config.embedder is None:
         print("[RAG] Skipped: collection or embedder not ready.")
         return []
@@ -262,9 +262,20 @@ def _rag_retrieve(query: str, n: int = 5) -> List[dict]:
             return []
 
         query_vector = config.embedder.encode(query).tolist()
+        
+        where = None
+        if category_filter:
+            if category_filter == "clothes":
+                where = {"$or": [{"type": "male-fashion"}, {"type": "female-fashion"}]}
+            elif category_filter == "accessories":
+                where = {"type": "tech-accessories"}
+            else:
+                where = {"type": category_filter}
+
         results = config.collection.query(
             query_embeddings=[query_vector],
             n_results=min(n, count),
+            where=where
         )
 
         output: List[dict] = []

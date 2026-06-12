@@ -69,6 +69,22 @@ This command will build the microservices, start RabbitMQ, Neo4j, and the servic
 - **Frontend Service Direct**: [http://localhost:9010/](http://localhost:9010/)
 - **RabbitMQ Management**: [http://localhost:15673/](http://localhost:15673/) (Default login: `guest`/`guest`)
 
+### 🔐 Login & Role Access (Đăng nhập theo vai trò)
+Hệ thống sử dụng cơ chế đăng nhập tập trung (Unified Login) tại một đường dẫn duy nhất cho tất cả các vai trò. Sau khi đăng nhập thành công, hệ thống tự động kiểm tra và điều hướng người dùng dựa vào vai trò (Role) của tài khoản:
+
+1. **Customer (Khách hàng)**
+   - **Link đăng nhập**: [http://localhost:9000/login/](http://localhost:9000/login/)
+   - **Sau khi đăng nhập**: Có thể mua sắm, xem giỏ hàng, cập nhật thông tin cá nhân và theo dõi lịch sử đơn hàng.
+
+2. **Staff / Shipper (Nhân viên giao hàng)**
+   - **Link đăng nhập**: [http://localhost:9000/login/](http://localhost:9000/login/) (hoặc truy cập trực tiếp `http://localhost:9000/staff-login/`)
+   - **Sau khi đăng nhập**: Tự động điều hướng đến **Shipper Dashboard** (`http://localhost:9000/shipper/dashboard/`) để xem danh sách đơn hàng cần giao và cập nhật trạng thái.
+
+3. **Admin (Quản trị viên)**
+   - **Link đăng nhập Website**: [http://localhost:9000/login/](http://localhost:9000/login/)
+   - **Sau khi đăng nhập**: Tự động điều hướng đến **Admin Dashboard** (`http://localhost:9000/dashboard/`) để quản lý toàn diện (sản phẩm, đơn hàng, khách hàng, nhân viên, v.v.) và xem thống kê kinh doanh.
+   - **Trang quản trị hệ thống (Django Admin)**: Dành cho kỹ thuật viên hoặc thao tác dữ liệu thô, truy cập tại [http://localhost:9000/django-admin/](http://localhost:9000/django-admin/).
+
 ---
 
 ## 💡 Notes

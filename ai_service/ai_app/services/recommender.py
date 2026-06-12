@@ -380,7 +380,8 @@ def get_chat_response(
     search_query = f"{ctx_str} {query}".strip() if ctx_str else query
 
     # ── 2. RAG retrieval ────────────────────────────────────────────────────
-    rag_results = _rag_retrieve(search_query, n=8)
+    category_intent = intent_data.get("category")
+    rag_results = _rag_retrieve(search_query, n=8, category_filter=category_intent)
 
     # ── 3. KB_Graph (cá nhân hóa nếu có user_id) ────────────────────────────
     kb_results: List[dict] = []

@@ -917,7 +917,7 @@ def ai_chat_api(request):
             body = json.loads(request.body)
             query = body.get('query', '')
             user_id = request.session.get('user_id')
-            response = requests.post(AI_CHAT_URL, json={'query': query, 'user_id': user_id}, timeout=10)
+            response = requests.post(AI_CHAT_URL, json={'query': query, 'user_id': user_id}, timeout=60)
             return JsonResponse(response.json(), status=response.status_code)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
