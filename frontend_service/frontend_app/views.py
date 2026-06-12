@@ -606,6 +606,7 @@ def dashboard_view(request):
         'grouped_products': grouped_products,
         'catalogs': catalogs,
         'current_catalog': current_catalog_slug,
+        'total_products': len(all_p),
     })
 
 def product_action_view(request, product_type):
@@ -617,6 +618,7 @@ def product_action_view(request, product_type):
     if request.method == 'POST':
         action = request.POST.get('action')
         product_id = request.POST.get('product_id')
+        page = request.POST.get('page', '1')
         
         if action == 'delete':
             token = request.session.get('access_token')
@@ -625,7 +627,7 @@ def product_action_view(request, product_type):
             messages.success(request, 'Đã xóa sản phẩm thành công.')
         elif action in ['add', 'edit']:
             import json
-            data = {k: v for k, v in request.POST.items() if k not in ['csrfmiddlewaretoken', 'action', 'product_id', 'product_type']}
+            data = {k: v for k, v in request.POST.items() if k not in ['csrfmiddlewaretoken', 'action', 'product_id', 'product_type', 'page']}
             
             if 'specific_attributes' in data and data['specific_attributes'].strip():
                 try:
@@ -658,40 +660,138 @@ def product_action_view(request, product_type):
             else:
                 messages.error(request, f'Lỗi khi lưu: {resp.text}')
             
-    return redirect('dashboard')
+    return redirect(f'/dashboard/?catalog={product_type}&page={page}')
 
 def admin_orders_view(request):
     role = str(request.session.get('role', '')).lower()
     if role not in ['staff', 'admin']:
         return redirect('login')
         
+    status_filter = request.GET.get('status', '')
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    
     orders = []
     try:
         resp = requests.get(f"{ORDER_SERVICE_URL}orders/", timeout=5)
         if resp.status_code == 200:
             orders = resp.json()
+            
+            # Apply filters
+            if status_filter:
+                orders = [o for o in orders if o.get('status') == status_filter]
+                
+            if start_date_str or end_date_str:
+                from datetime import datetime
+                filtered_orders = []
+                for o in orders:
+                    created_at_str = o.get('created_at')
+                    if created_at_str:
+                        # Extract date part: YYYY-MM-DD
+                        o_date_str = created_at_str[:10]
+                        try:
+                            o_date = datetime.strptime(o_date_str, '%Y-%m-%d').date()
+                            valid = True
+                            if start_date_str:
+                                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                                if o_date < start_date:
+                                    valid = False
+                            if end_date_str:
+                                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                                if o_date > end_date:
+                                    valid = False
+                            if valid:
+                                filtered_orders.append(o)
+                        except ValueError:
+                            filtered_orders.append(o) # Keep if unparseable to be safe
+                    else:
+                        filtered_orders.append(o)
+                orders = filtered_orders
+
             orders.sort(key=lambda x: x.get('id', 0), reverse=True)
     except Exception as e:
         print(f"Error fetching all orders: {e}")
     
-    paginator = Paginator(orders, 8)
+    from django.core.paginator import Paginator
+    paginator = Paginator(orders, 10) # 10 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'frontend_app/admin/admin_orders.html', {'orders': page_obj})
+    
+    context = {
+        'orders': page_obj,
+        'status_filter': status_filter,
+        'start_date': start_date_str,
+        'end_date': end_date_str
+    }
+    return render(request, 'frontend_app/admin/admin_orders.html', context)
 
 def admin_customers_view(request):
     role = str(request.session.get('role', '')).lower()
-    if role != 'admin':
+    if role not in ['admin', 'staff']:
         return redirect('login')
         
     token = request.session.get('access_token')
     headers = {'Authorization': f'Bearer {token}'} if token else {}
     
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            data = {
+                'username': request.POST.get('username'),
+                'email': request.POST.get('email'),
+                'full_name': request.POST.get('full_name'),
+                'phone': request.POST.get('phone'),
+                'address': request.POST.get('address'),
+                'password': request.POST.get('password')
+            }
+            try:
+                resp = requests.post(f"{USER_SERVICE_URL}register/", json=data, timeout=5)
+                if resp.status_code == 201:
+                    messages.success(request, "Thêm khách hàng thành công.")
+                else:
+                    err = resp.json()
+                    msg = err.get('message') or err.get('error') or str(err)
+                    messages.error(request, f"Lỗi: {msg}")
+            except Exception as e:
+                messages.error(request, "Lỗi kết nối đến hệ thống.")
+                
+        elif action == 'edit':
+            customer_id = request.POST.get('customer_id')
+            data = {
+                'email': request.POST.get('email'),
+                'full_name': request.POST.get('full_name'),
+                'phone': request.POST.get('phone'),
+                'address': request.POST.get('address')
+            }
+            data = {k: v for k, v in data.items() if v}
+            try:
+                resp = requests.patch(f"{USER_SERVICE_URL}admin/customers/{customer_id}/", json=data, headers=headers, timeout=5)
+                if resp.status_code == 200:
+                    messages.success(request, "Cập nhật khách hàng thành công.")
+                else:
+                    messages.error(request, "Lỗi cập nhật khách hàng.")
+            except Exception as e:
+                messages.error(request, "Lỗi kết nối đến hệ thống.")
+                
+        elif action == 'toggle_active':
+            customer_id = request.POST.get('customer_id')
+            is_active = request.POST.get('is_active') == 'true'
+            try:
+                resp = requests.patch(f"{USER_SERVICE_URL}admin/customers/{customer_id}/", json={'is_active': not is_active}, headers=headers, timeout=5)
+                if resp.status_code == 200:
+                    messages.success(request, "Thay đổi trạng thái thành công.")
+                else:
+                    messages.error(request, "Lỗi thay đổi trạng thái.")
+            except Exception as e:
+                messages.error(request, "Lỗi kết nối đến hệ thống.")
+                
+        return redirect('admin_customers')
+    
     customers = []
     try:
-        resp = requests.get(f"{USER_SERVICE_URL}admin/users/", headers=headers, timeout=5)
+        resp = requests.get(f"{USER_SERVICE_URL}admin/customers/", headers=headers, timeout=5)
         if resp.status_code == 200:
-            customers = [u for u in resp.json() if u.get('role', '').lower() == 'customer']
+            customers = resp.json()
     except Exception as e:
         print(f"Error fetching users: {e}")
         
@@ -707,6 +807,58 @@ def admin_staff_view(request):
         
     token = request.session.get('access_token')
     headers = {'Authorization': f'Bearer {token}'} if token else {}
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            data = {
+                'username': request.POST.get('username'),
+                'email': request.POST.get('email'),
+                'full_name': request.POST.get('full_name'),
+                'phone': request.POST.get('phone'),
+                'password': request.POST.get('password')
+            }
+            try:
+                resp = requests.post(f"{USER_SERVICE_URL}admin/staff/", json=data, headers=headers, timeout=5)
+                if resp.status_code == 201:
+                    messages.success(request, "Thêm nhân viên thành công.")
+                else:
+                    err = resp.json()
+                    msg = err.get('message') or err.get('error') or str(err)
+                    messages.error(request, f"Lỗi: {msg}")
+            except Exception as e:
+                messages.error(request, "Lỗi kết nối đến hệ thống.")
+                
+        elif action == 'edit':
+            staff_id = request.POST.get('staff_id')
+            data = {
+                'email': request.POST.get('email'),
+                'full_name': request.POST.get('full_name'),
+                'phone': request.POST.get('phone')
+            }
+            data = {k: v for k, v in data.items() if v}
+            try:
+                resp = requests.patch(f"{USER_SERVICE_URL}admin/staff/{staff_id}/", json=data, headers=headers, timeout=5)
+                if resp.status_code == 200:
+                    messages.success(request, "Cập nhật nhân viên thành công.")
+                else:
+                    messages.error(request, "Lỗi cập nhật nhân viên.")
+            except Exception as e:
+                messages.error(request, "Lỗi kết nối đến hệ thống.")
+                
+        elif action == 'toggle_active':
+            staff_id = request.POST.get('staff_id')
+            is_active = request.POST.get('is_active') == 'true'
+            try:
+                resp = requests.patch(f"{USER_SERVICE_URL}admin/staff/{staff_id}/", json={'is_active': not is_active}, headers=headers, timeout=5)
+                if resp.status_code == 200:
+                    messages.success(request, "Thay đổi trạng thái thành công.")
+                else:
+                    messages.error(request, "Lỗi thay đổi trạng thái.")
+            except Exception as e:
+                messages.error(request, "Lỗi kết nối đến hệ thống.")
+                
+        return redirect('admin_staff')
     
     staff = []
     try:
@@ -751,7 +903,7 @@ def admin_stats_view(request):
             r = requests.get(PRODUCT_SERVICE_URL, timeout=3)
             if r.status_code == 200:
                 # { "1": "laptop", "2": "mobile" }
-                return {str(p['id']): p.get('type', 'Khác') for p in r.json()}
+                return {str(p['id']): p.get('product_type') or p.get('catalog_slug') or 'Khác' for p in r.json()}
             return {}
         except: return {}
 
@@ -815,7 +967,9 @@ def admin_stats_view(request):
         if s == 'delivered':
             for item in o.get('items', []):
                 p_id = str(item.get('product_id'))
-                p_name = item.get('product_name', f"Sản phẩm #{p_id}")
+                p_name = item.get('product_name')
+                if not p_name or p_name == 'Sản phẩm':
+                    p_name = f"Sản phẩm #{p_id}"
                 
                 # Fallback mapping cho các đơn hàng cũ bị thiếu product_type
                 p_type = item.get('product_type')
@@ -824,7 +978,7 @@ def admin_stats_view(request):
                 
                 p_image = item.get('image_url', '')
                 qty = int(item.get('quantity', 0))
-                price = float(item.get('price', 0))
+                price = float(item.get('unit_price', item.get('price', 0))) # Fix unit_price
                 revenue = qty * price
                 
                 # Fix URL ảnh
@@ -836,7 +990,7 @@ def admin_stats_view(request):
 
                 # Theo Sản phẩm tổng quát
                 if p_id not in product_sales:
-                    product_sales[p_id] = {'name': p_name, 'image': p_image, 'qty': 0, 'revenue': 0, 'type': p_type}
+                    product_sales[p_id] = {'id': p_id, 'name': p_name, 'image': p_image, 'qty': 0, 'revenue': 0, 'type': p_type}
                 product_sales[p_id]['qty'] += qty
                 product_sales[p_id]['revenue'] += revenue
                 
@@ -848,6 +1002,11 @@ def admin_stats_view(request):
                 if p_type not in category_product_detail:
                     category_product_detail[p_type] = {}
                 category_product_detail[p_type][p_name] = category_product_detail[p_type].get(p_name, 0) + qty
+
+    # Đảm bảo tất cả danh mục (catalog) có trong DB đều xuất hiện ở dropdown
+    for cat in set(product_type_map.values()):
+        if cat and cat != 'Khác' and cat not in category_product_detail:
+            category_product_detail[cat] = {}
 
     limit = int(request.GET.get('limit', 5))
     
@@ -861,17 +1020,17 @@ def admin_stats_view(request):
     for o in filtered_orders:
         if o.get('status') == 'delivered':
             uid = o.get('user_id')
-            uname = o.get('customer_name', f"Khách #{uid}")
+            uname = o.get('receiver_name') or o.get('customer_name', f"Khách #{uid}")
             if uid not in customer_stats:
-                customer_stats[uid] = {'name': uname, 'total_spent': 0, 'order_count': 0}
-            customer_stats[uid]['total_spent'] += float(o.get('total_price', 0))
-            customer_stats[uid]['order_count'] += 1
+                customer_stats[uid] = {'user_id': uid, 'name': uname, 'total': 0, 'orders': 0}
+            customer_stats[uid]['total'] += float(o.get('total_price', 0))
+            customer_stats[uid]['orders'] += 1
             
     for uid in customer_stats:
         stats = customer_stats[uid]
-        stats['aov'] = stats['total_spent'] / stats['order_count'] if stats['order_count'] > 0 else 0
+        stats['aov'] = stats['total'] / stats['orders'] if stats['orders'] > 0 else 0
         
-    top_customers = sorted(customer_stats.values(), key=lambda x: x['total_spent'], reverse=True)[:limit]
+    top_customers = sorted(customer_stats.values(), key=lambda x: x['total'], reverse=True)[:limit]
 
     # 5. Dữ liệu biểu đồ 7 ngày gần nhất (luôn hiển thị 7 ngày để thấy xu hướng)
     revenue_by_date = {}

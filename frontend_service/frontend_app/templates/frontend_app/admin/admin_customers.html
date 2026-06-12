@@ -187,9 +187,14 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <div style="margin-bottom: 2rem;">
-            <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Quản Lý Khách Hàng</h1>
-            <p style="color: var(--text-muted);">Danh sách khách hàng đăng ký trên hệ thống.</p>
+        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Quản Lý Khách Hàng</h1>
+                <p style="color: var(--text-muted);">Danh sách khách hàng đăng ký trên hệ thống.</p>
+            </div>
+            <button onclick="openAddCustomerModal()" class="btn-primary" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;">+</span> Thêm Khách Hàng
+            </button>
         </div>
 
         <div class="glass-card" style="background: white; padding: 0; overflow: hidden;">
@@ -200,7 +205,8 @@
                             <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">ID</th>
                             <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Khách hàng</th>
                             <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Số điện thoại</th>
-                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Ngày tạo</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Trạng thái</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -222,8 +228,25 @@
                                 {{ c.phone_number|default:"Chưa cập nhật" }}
                             </td>
                             <td style="padding: 1.2rem 1.5rem; color: var(--text-muted);">
-                                <!-- TODO: Parse date if available in c -->
-                                Hoạt động
+                                {% if c.is_active %}
+                                    <span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">Hoạt động</span>
+                                {% else %}
+                                    <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">Bị khóa</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem;">
+                                <button onclick="openEditCustomerModal('{{ c.id }}', '{{ c.email }}', '{{ c.full_name|default:c.username|escapejs }}', '{{ c.phone|default:"" }}', '{{ c.address|default:""|escapejs }}')" style="background: #e0e7ff; color: #4338ca; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; margin-right: 8px;">Sửa</button>
+                                <form method="POST" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_active">
+                                    <input type="hidden" name="customer_id" value="{{ c.id }}">
+                                    <input type="hidden" name="is_active" value="{{ c.is_active|lower }}">
+                                    {% if c.is_active %}
+                                        <button type="submit" onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?');" style="background: #fee2e2; color: #991b1b; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">Khóa</button>
+                                    {% else %}
+                                        <button type="submit" style="background: #dcfce7; color: #166534; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">Mở khóa</button>
+                                    {% endif %}
+                                </form>
                             </td>
                         </tr>
                         {% empty %}
@@ -284,4 +307,95 @@
         </div>
     </main>
 </div>
+
+    <!-- Add Customer Modal -->
+    <div id="addCustomerModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-card" style="background: white; width: 100%; max-width: 500px; padding: 2rem;">
+            <h2 style="margin-top: 0;">Thêm Khách Hàng Mới</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tên đăng nhập</label>
+                    <input type="text" name="username" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Mật khẩu</label>
+                    <input type="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Họ và Tên</label>
+                    <input type="text" name="full_name" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email</label>
+                    <input type="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Số điện thoại</label>
+                    <input type="text" name="phone" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Địa chỉ</label>
+                    <input type="text" name="address" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeAddCustomerModal()" style="padding: 10px 20px; background: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Hủy</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Customer Modal -->
+    <div id="editCustomerModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-card" style="background: white; width: 100%; max-width: 500px; padding: 2rem;">
+            <h2 style="margin-top: 0;">Sửa Thông Tin Khách Hàng</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="customer_id" id="edit_customer_id">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Họ và Tên</label>
+                    <input type="text" name="full_name" id="edit_full_name" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email</label>
+                    <input type="email" name="email" id="edit_email" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Số điện thoại</label>
+                    <input type="text" name="phone" id="edit_phone" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Địa chỉ</label>
+                    <input type="text" name="address" id="edit_address" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeEditCustomerModal()" style="padding: 10px 20px; background: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Hủy</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddCustomerModal() {
+            document.getElementById('addCustomerModal').style.display = 'flex';
+        }
+        function closeAddCustomerModal() {
+            document.getElementById('addCustomerModal').style.display = 'none';
+        }
+        function openEditCustomerModal(id, email, name, phone, address) {
+            document.getElementById('edit_customer_id').value = id;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_full_name').value = name;
+            document.getElementById('edit_phone').value = phone;
+            document.getElementById('edit_address').value = address;
+            document.getElementById('editCustomerModal').style.display = 'flex';
+        }
+        function closeEditCustomerModal() {
+            document.getElementById('editCustomerModal').style.display = 'none';
+        }
+    </script>
 {% endblock %}

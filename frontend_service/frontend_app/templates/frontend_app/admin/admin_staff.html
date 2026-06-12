@@ -181,6 +181,9 @@
                 <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Quản Lý Nhân Viên (Staff)</h1>
                 <p style="color: var(--text-muted);">Danh sách nhân viên vận hành hệ thống.</p>
             </div>
+            <button onclick="openAddStaffModal()" class="btn-primary" style="padding: 12px 24px; border-radius: 12px; font-weight: 600; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.2rem;">+</span> Thêm Nhân Viên
+            </button>
         </div>
 
         <div class="glass-card" style="background: white; padding: 0; overflow: hidden;">
@@ -192,6 +195,7 @@
                             <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Nhân viên</th>
                             <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Số điện thoại</th>
                             <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Trạng thái</th>
+                            <th style="padding: 1.2rem 1.5rem; font-size: 0.85rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -218,6 +222,20 @@
                                 {% else %}
                                     <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">Đã nghỉ</span>
                                 {% endif %}
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem;">
+                                <button onclick="openEditStaffModal('{{ s.id }}', '{{ s.email }}', '{{ s.full_name|escapejs }}', '{{ s.phone|default:"" }}')" style="background: #e0e7ff; color: #4338ca; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; margin-right: 8px;">Sửa</button>
+                                <form method="POST" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_active">
+                                    <input type="hidden" name="staff_id" value="{{ s.id }}">
+                                    <input type="hidden" name="is_active" value="{{ s.is_active|lower }}">
+                                    {% if s.is_active %}
+                                        <button type="submit" onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?');" style="background: #fee2e2; color: #991b1b; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">Khóa</button>
+                                    {% else %}
+                                        <button type="submit" style="background: #dcfce7; color: #166534; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">Mở khóa</button>
+                                    {% endif %}
+                                </form>
                             </td>
                         </tr>
                         {% empty %}
@@ -277,4 +295,86 @@
         </div>
     </main>
 </div>
+
+    <!-- Add Staff Modal -->
+    <div id="addStaffModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-card" style="background: white; width: 100%; max-width: 500px; padding: 2rem;">
+            <h2 style="margin-top: 0;">Thêm Nhân Viên Mới</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tên đăng nhập</label>
+                    <input type="text" name="username" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Mật khẩu</label>
+                    <input type="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Họ và Tên</label>
+                    <input type="text" name="full_name" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email</label>
+                    <input type="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Số điện thoại</label>
+                    <input type="text" name="phone" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeAddStaffModal()" style="padding: 10px 20px; background: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Hủy</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Staff Modal -->
+    <div id="editStaffModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="glass-card" style="background: white; width: 100%; max-width: 500px; padding: 2rem;">
+            <h2 style="margin-top: 0;">Sửa Thông Tin Nhân Viên</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="staff_id" id="edit_staff_id">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Họ và Tên</label>
+                    <input type="text" name="full_name" id="edit_full_name" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email</label>
+                    <input type="email" name="email" id="edit_email" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Số điện thoại</label>
+                    <input type="text" name="phone" id="edit_phone" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" onclick="closeEditStaffModal()" style="padding: 10px 20px; background: #f1f5f9; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Hủy</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openAddStaffModal() {
+            document.getElementById('addStaffModal').style.display = 'flex';
+        }
+        function closeAddStaffModal() {
+            document.getElementById('addStaffModal').style.display = 'none';
+        }
+        function openEditStaffModal(id, email, name, phone) {
+            document.getElementById('edit_staff_id').value = id;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_full_name').value = name;
+            document.getElementById('edit_phone').value = phone;
+            document.getElementById('editStaffModal').style.display = 'flex';
+        }
+        function closeEditStaffModal() {
+            document.getElementById('editStaffModal').style.display = 'none';
+        }
+    </script>
 {% endblock %}

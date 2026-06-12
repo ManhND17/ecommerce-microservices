@@ -193,6 +193,37 @@
             <p style="color: var(--text-muted);">Cập nhật trạng thái và theo dõi đơn hàng của khách hàng.</p>
         </div>
 
+        <!-- FILTER FORM -->
+        <div class="glass-card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem; display: flex; gap: 1rem; align-items: center; background: white;">
+            <form method="GET" style="display: flex; gap: 1rem; align-items: flex-end; width: 100%;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.3rem;">Trạng thái</label>
+                    <select name="status" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; background: #f8fafc; cursor: pointer;">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Chờ xử lý</option>
+                        <option value="pending_payment" {% if status_filter == 'pending_payment' %}selected{% endif %}>Chờ thanh toán</option>
+                        <option value="preparing" {% if status_filter == 'preparing' %}selected{% endif %}>Đang chuẩn bị</option>
+                        <option value="prepared" {% if status_filter == 'prepared' %}selected{% endif %}>Đã chuẩn bị</option>
+                        <option value="shipping" {% if status_filter == 'shipping' %}selected{% endif %}>Đang giao</option>
+                        <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Đã giao</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.3rem;">Từ ngày</label>
+                    <input type="date" name="start_date" value="{{ start_date }}" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; background: #f8fafc;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.3rem;">Đến ngày</label>
+                    <input type="date" name="end_date" value="{{ end_date }}" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; background: #f8fafc;">
+                </div>
+                <div>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Lọc</button>
+                    <a href="?page=1" style="padding: 10px 20px; background: #f1f5f9; color: var(--text-main); text-decoration: none; border-radius: 8px; font-weight: 700; margin-left: 0.5rem; display: inline-block;">Xóa lọc</a>
+                </div>
+            </form>
+        </div>
+
         <div class="glass-card" style="background: white; padding: 0; overflow: hidden;">
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -262,19 +293,19 @@
             {% if orders.has_other_pages %}
             <div class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; padding: 1.5rem; border-top: 1px solid #f1f5f9; background: #fafafa;">
                 {% if orders.has_previous %}
-                    <a href="?page={{ orders.previous_page_number }}" class="btn-page">❮</a>
+                    <a href="?page={{ orders.previous_page_number }}&status={{ status_filter }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn-page">❮</a>
                 {% endif %}
 
                 {% for i in orders.paginator.page_range %}
                     {% if orders.number == i %}
                         <span class="btn-page active">{{ i }}</span>
                     {% else %}
-                        <a href="?page={{ i }}" class="btn-page">{{ i }}</a>
+                        <a href="?page={{ i }}&status={{ status_filter }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn-page">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if orders.has_next %}
-                    <a href="?page={{ orders.next_page_number }}" class="btn-page">❯</a>
+                    <a href="?page={{ orders.next_page_number }}&status={{ status_filter }}&start_date={{ start_date }}&end_date={{ end_date }}" class="btn-page">❯</a>
                 {% endif %}
             </div>
             <style>

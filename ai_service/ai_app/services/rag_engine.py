@@ -155,18 +155,23 @@ async def sync_knowledge_base() -> None:
         print("[SYNC] Skipped: embedder or chroma_client not initialized.")
         return
 
-    # Fetch products
+    # Fetch products (handle pagination)
+    products: List[dict] = []
+    url = config.PRODUCT_SERVICE_URL
     try:
-        response = requests.get(config.PRODUCT_SERVICE_URL, timeout=10)
-        if response.status_code != 200:
-            print(f"[SYNC] Product Service HTTP {response.status_code}. Skipped.")
-            return
-        raw = response.json()
-        products: List[dict] = (
-            raw.get("results", raw.get("data", raw))
-            if isinstance(raw, dict)
-            else raw
-        )
+        while url:
+            response = requests.get(url, timeout=10)
+            if response.status_code != 200:
+                print(f"[SYNC] Product Service HTTP {response.status_code}. Skipped.")
+                break
+            raw = response.json()
+            if isinstance(raw, dict):
+                batch = raw.get("results", raw.get("data", []))
+                products.extend(batch)
+                url = raw.get("next") # Lấy trang tiếp theo nếu có
+            else:
+                products.extend(raw)
+                break
     except Exception as exc:
         print(f"[SYNC] Product fetch failed: {exc}")
         return

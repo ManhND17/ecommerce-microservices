@@ -194,7 +194,7 @@
     <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #e2e8f0; padding-bottom: 1.5rem;">
         <div>
             <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin: 0 0 0.5rem;">Quản lý sản phẩm</h1>
-            <p style="color: var(--text-muted); margin: 0;">Danh sách sản phẩm hiện có: <span id="total-count-display" style="font-weight: 800; color: var(--primary);">0</span> sản phẩm</p>
+            <p style="color: var(--text-muted); margin: 0;">Danh sách sản phẩm hiện có: <span style="font-weight: 800; color: var(--primary);">{{ total_products }}</span> sản phẩm</p>
         </div>
         <button onclick="openAddModal()" class="btn btn-primary">
             + Thêm sản phẩm mới
@@ -249,12 +249,13 @@
                                 <td style="padding: 1.2rem 1.5rem;">
                                     <div style="display: flex; gap: 8px;">
                                         <button onclick="openEditModal('{{ p.id }}', '{{ slug }}')" class="btn-sm" style="background: #f1f5f9; color: var(--text-main); border-radius: 8px; border: none; padding: 6px 12px; cursor: pointer; font-weight: 600;">Sửa</button>
-                                        <form action="{% url 'product_action' slug %}" method="post" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa?')">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="product_id" value="{{ p.id }}">
-                                            <button type="submit" class="btn-sm" style="background: #fff1f2; color: #e11d48; border-radius: 8px; border: none; padding: 6px 12px; cursor: pointer; font-weight: 600;">Xóa</button>
-                                        </form>
+                                            <form action="{% url 'product_action' slug %}" method="post" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa?')">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="product_id" value="{{ p.id }}">
+                                                <input type="hidden" name="page" value="{{ products.number }}">
+                                                <button type="submit" class="btn-sm" style="background: #fff1f2; color: #e11d48; border-radius: 8px; border: none; padding: 6px 12px; cursor: pointer; font-weight: 600;">Xóa</button>
+                                            </form>
                                     </div>
                                 </td>
                             </tr>
@@ -325,10 +326,11 @@
     <div class="glass-card animate-up" style="background: white; padding: 2.5rem; width: 600px; max-height: 90vh; overflow-y: auto;">
         <h2 id="modal-title" style="font-size: 1.8rem; font-weight: 800; margin-top: 0; margin-bottom: 2rem;">Thêm sản phẩm</h2>
         
-        <form id="product-form" method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="hidden" name="action" id="modal-action" value="add">
-            <input type="hidden" name="product_id" id="modal-product-id">
+            <form id="product-form" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="modal-action" value="add">
+                <input type="hidden" name="product_id" id="modal-product-id">
+                <input type="hidden" name="page" id="modal-page" value="1">
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                 <div style="grid-column: 1 / -1;">
@@ -386,31 +388,15 @@
 <script>
 let currentTabSlug = '{% if catalogs %}{{ catalogs.0.slug }}{% endif %}';
 
-function switchTab(slug) {
-    currentTabSlug = slug;
-    document.querySelectorAll('.category-tbody').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    
-    const targetBody = document.getElementById(slug + '-body');
-    targetBody.style.display = 'table-row-group';
-    document.getElementById('tab-' + slug).classList.add('active');
-
-    // Cập nhật số lượng sản phẩm hiển thị trên tiêu đề
-    const rowCount = targetBody.querySelectorAll('tr:not(:only-child)').length || 
-                     (targetBody.querySelector('td[colspan]') ? 0 : targetBody.querySelectorAll('tr').length);
-    document.getElementById('total-count-display').innerText = rowCount;
-}
-
-// Gọi mặc định khi trang tải xong
-document.addEventListener('DOMContentLoaded', () => {
-    switchTab(currentTabSlug);
-});
 
 function openAddModal() {
     document.getElementById('modal-title').innerText = "Thêm sản phẩm mới";
     document.getElementById('modal-action').value = "add";
     document.getElementById('product-form').reset();
     document.getElementById('catalog-selector-container').style.display = 'block';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('modal-page').value = urlParams.get('page') || '1';
     
     // Gán action cho form: /dashboard/product/<currentTabSlug>/
     document.getElementById('product-form').action = `/dashboard/product/${currentTabSlug}/`;
@@ -430,6 +416,9 @@ async function openEditModal(id, type) {
     document.getElementById('modal-action').value = "edit";
     document.getElementById('modal-product-id').value = id;
     document.getElementById('catalog-selector-container').style.display = 'none';
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('modal-page').value = urlParams.get('page') || '1';
     
     // Gán action cho form: /dashboard/product/<type>/
     document.getElementById('product-form').action = `/dashboard/product/${type}/`;

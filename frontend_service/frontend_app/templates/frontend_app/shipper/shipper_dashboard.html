@@ -47,11 +47,13 @@
         border: 1px solid #e2e8f0;
         margin-bottom: 2rem;
         box-shadow: var(--shadow-sm);
-        scrollbar-width: none; /* Hide scrollbar for Firefox */
+        scrollbar-width: none;
+        /* Hide scrollbar for Firefox */
     }
 
     .tabs-wrapper::-webkit-scrollbar {
-        display: none; /* Hide scrollbar for Chrome/Safari */
+        display: none;
+        /* Hide scrollbar for Chrome/Safari */
     }
 
     .tab-btn {
@@ -108,19 +110,35 @@
     .shipment-card::before {
         content: '';
         position: absolute;
-        left: 0; top: 0; bottom: 0;
+        left: 0;
+        top: 0;
+        bottom: 0;
         width: 5px;
         background: #e2e8f0;
         transition: all 0.3s;
     }
 
     /* Dynamic Border color based on status */
-    .shipment-card.status-preparing::before { background: #0284c7; }
-    .shipment-card.status-prepared::before { background: #d97706; }
+    .shipment-card.status-preparing::before {
+        background: #0284c7;
+    }
+
+    .shipment-card.status-prepared::before {
+        background: #d97706;
+    }
+
     .shipment-card.status-picked_up::before,
-    .shipment-card.status-in_transit::before { background: #7e22ce; }
-    .shipment-card.status-delivered::before { background: #15803d; }
-    .shipment-card.status-failed::before { background: #ef4444; }
+    .shipment-card.status-in_transit::before {
+        background: #7e22ce;
+    }
+
+    .shipment-card.status-delivered::before {
+        background: #15803d;
+    }
+
+    .shipment-card.status-failed::before {
+        background: #ef4444;
+    }
 
     .card-header {
         display: flex;
@@ -209,6 +227,7 @@
         background: #fef3c7;
         color: #d97706;
     }
+
     .btn-pickup:hover {
         background: #d97706;
         color: white;
@@ -218,6 +237,7 @@
         background: #dcfce3;
         color: #15803d;
     }
+
     .btn-deliver:hover {
         background: #15803d;
         color: white;
@@ -228,6 +248,7 @@
         background: #fee2e2;
         color: #ef4444;
     }
+
     .btn-fail:hover {
         background: #ef4444;
         color: white;
@@ -252,6 +273,7 @@
         cursor: pointer;
         transition: all 0.2s;
     }
+
     .btn-detail:hover {
         background: var(--primary);
         color: white;
@@ -271,9 +293,11 @@
         max-height: 85vh;
         overflow-y: auto;
     }
+
     .modal-backdrop.active .detail-modal-card {
         transform: scale(1);
     }
+
     .order-item-row {
         display: flex;
         align-items: center;
@@ -281,18 +305,42 @@
         padding: 0.8rem 0;
         border-bottom: 1px solid #f1f5f9;
     }
-    .order-item-row:last-child { border-bottom: none; }
+
+    .order-item-row:last-child {
+        border-bottom: none;
+    }
+
     .item-img {
-        width: 50px; height: 50px;
+        width: 50px;
+        height: 50px;
         border-radius: 10px;
         object-fit: cover;
         background: #f1f5f9;
         flex-shrink: 0;
     }
-    .item-info { flex: 1; }
-    .item-name { font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
-    .item-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-    .item-price { font-weight: 800; color: var(--primary); font-size: 0.95rem; white-space: nowrap; }
+
+    .item-info {
+        flex: 1;
+    }
+
+    .item-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--text-main);
+    }
+
+    .item-meta {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .item-price {
+        font-weight: 800;
+        color: var(--primary);
+        font-size: 0.95rem;
+        white-space: nowrap;
+    }
 
     .phone-link {
         color: var(--primary);
@@ -302,6 +350,7 @@
         align-items: center;
         gap: 4px;
     }
+
     .phone-link:hover {
         text-decoration: underline;
     }
@@ -325,7 +374,10 @@
     /* Modal Backdrop */
     .modal-backdrop {
         position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: rgba(15, 23, 42, 0.6);
         backdrop-filter: blur(4px);
         display: flex;
@@ -390,7 +442,8 @@
         margin-bottom: 0.4rem;
     }
 
-    .form-group input, .form-group textarea {
+    .form-group input,
+    .form-group textarea {
         width: 100%;
         padding: 10px 14px;
         border-radius: 10px;
@@ -400,7 +453,8 @@
         font-size: 0.95rem;
     }
 
-    .form-group input:focus, .form-group textarea:focus {
+    .form-group input:focus,
+    .form-group textarea:focus {
         border-color: var(--primary);
         box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
     }
@@ -409,19 +463,18 @@
 <div class="shipper-container">
     <div class="shipper-header">
         <div class="shipper-title">
-            <h1><span>🚚</span> Bảng Điều Phối Giao Hàng</h1>
-            <p>Xử lý trạng thái giao hàng, kiểm tra khách hàng và địa chỉ thực tế.</p>
+            <h1><span>🚚</span> Danh sách các đơn hàng</h1>
         </div>
     </div>
 
     <!-- Navigation Tabs -->
     <div class="tabs-wrapper">
-        <button class="tab-btn active" onclick="filterShipments('all', this)">📦 Tất cả</button>
-        <button class="tab-btn" onclick="filterShipments('preparing', this)">⚙️ Đang chuẩn bị</button>
-        <button class="tab-btn" onclick="filterShipments('prepared', this)">🧡 Sẵn sàng lấy</button>
-        <button class="tab-btn" onclick="filterShipments('in_transit', this)">⚡ Đang giao</button>
-        <button class="tab-btn" onclick="filterShipments('delivered', this)">✅ Đã giao</button>
-        <button class="tab-btn" onclick="filterShipments('failed', this)">❌ Giao thất bại</button>
+        <button class="tab-btn active" onclick="filterShipments('all', this)">Tất cả</button>
+        <button class="tab-btn" onclick="filterShipments('preparing', this)">Đang chuẩn bị</button>
+        <button class="tab-btn" onclick="filterShipments('prepared', this)">Sẵn sàng lấy</button>
+        <button class="tab-btn" onclick="filterShipments('in_transit', this)">Đang giao</button>
+        <button class="tab-btn" onclick="filterShipments('delivered', this)">Đã giao</button>
+        <button class="tab-btn" onclick="filterShipments('failed', this)">Giao thất bại</button>
     </div>
 
     <!-- Shipment list grid -->
@@ -440,13 +493,13 @@
                                 {% elif s.status == 'in_transit' or s.status == 'picked_up' %}background:#f3e8ff;color:#7e22ce;
                                 {% elif s.status == 'delivered' %}background:#dcfce3;color:#15803d;
                                 {% elif s.status == 'failed' %}background:#fee2e2;color:#ef4444;
-                                {% else %}background:#f1f5f9;color:#475569;{% endif %}"
-                            >
-                                {% if s.status == 'preparing' %}⚙️ Đang chuẩn bị
-                                {% elif s.status == 'prepared' %}✅ Sẵn sàng lấy hàng
-                                {% elif s.status == 'in_transit' or s.status == 'picked_up' %}🚚 Đang giao
-                                {% elif s.status == 'delivered' %}🎉 Đã giao
-                                {% elif s.status == 'failed' %}❌ Thất bại
+                                {% else %}background:#f1f5f9;color:#475569;{% endif %}">
+                                {% if s.status == 'preparing' %} Đang chuẩn bị
+                                {% elif s.status == 'prepared' %} Sẵn sàng lấy hàng
+                                {% elif s.status == 'picked_up' %} Đã lấy hàng
+                                {% elif s.status == 'in_transit' %} Đang giao
+                                {% elif s.status == 'delivered' %} Đã giao
+                                {% elif s.status == 'failed' %} Thất bại
                                 {% else %}{{ s.status|upper }}{% endif %}
                             </span>
                         </div>
@@ -466,9 +519,9 @@
                         <span class="info-label">📞</span>
                         <div class="info-value">
                             {% if s.receiver_phone %}
-                                <a href="tel:{{ s.receiver_phone }}" class="phone-link">📞 {{ s.receiver_phone }}</a>
+                            <a href="tel:{{ s.receiver_phone }}" class="phone-link">{{ s.receiver_phone }}</a>
                             {% else %}
-                                <span style="color: var(--text-muted);">Không có số điện thoại</span>
+                            <span style="color: var(--text-muted);">Không có số điện thoại</span>
                             {% endif %}
                         </div>
                     </div>
@@ -485,17 +538,23 @@
                         <div class="info-value price">
                             {{ s.total_price|floatformat:"0"|intcomma }} đ
                             {% if s.method == 'cod' %}
-                                <span class="tag" style="background: #fee2e2; color: #ef4444; font-size: 0.65rem; margin-left: 5px;">Thu COD</span>
+                            <span class="tag"
+                                style="background: #fee2e2; color: #ef4444; font-size: 0.65rem; margin-left: 5px;">Thu
+                                COD</span>
                             {% else %}
-                                <span class="tag" style="background: #e0f2fe; color: #0369a1; font-size: 0.65rem; margin-left: 5px;">Đã Thanh Toán</span>
+                            <span class="tag"
+                                style="background: #e0f2fe; color: #0369a1; font-size: 0.65rem; margin-left: 5px;">Đã
+                                Thanh Toán</span>
                             {% endif %}
                         </div>
                     </div>
 
                     {% if s.notes %}
-                    <div class="info-row" style="background: #f8fafc; padding: 8px 12px; border-radius: 8px; border-left: 3px solid #cbd5e1; margin-top: 5px;">
+                    <div class="info-row"
+                        style="background: #f8fafc; padding: 8px 12px; border-radius: 8px; border-left: 3px solid #cbd5e1; margin-top: 5px;">
                         <span class="info-label" style="font-size: 0.9rem;">📝</span>
-                        <div class="info-value" style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">
+                        <div class="info-value"
+                            style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">
                             {{ s.notes }}
                         </div>
                     </div>
@@ -503,8 +562,10 @@
 
                     <!-- Display Shipper info if available -->
                     {% if s.shipper_name %}
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
-                        <div>🧑‍✈️ Shipper: <strong>{{ s.shipper_name }}</strong> ({% if s.shipper_phone %}{{ s.shipper_phone }}{% else %}N/A{% endif %})</div>
+                    <div
+                        style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                        <div>🧑‍✈️ Shipper: <strong>{{ s.shipper_name }}</strong> ({% if s.shipper_phone %}{{
+                            s.shipper_phone }}{% else %}N/A{% endif %})</div>
                     </div>
                     {% endif %}
                 </div>
@@ -513,18 +574,26 @@
             <!-- Dynamic Actions -->
             <div class="card-actions">
                 {% if s.status == 'preparing' %}
-                    <button class="action-btn btn-disabled" title="Admin/Staff đang chuẩn bị hàng, vui lòng chờ.">⚙️ Shop đang chuẩn bị hàng...</button>
+                <button class="action-btn btn-disabled" title="Admin/Staff đang chuẩn bị hàng, vui lòng chờ.">⚙️ Shop
+                    đang chuẩn bị hàng...</button>
                 {% elif s.status == 'prepared' %}
-                    <button class="action-btn btn-pickup" onclick="openActionModal({{ s.id }}, 'in_transit')">🚚 Nhận đi giao</button>
-                {% elif s.status == 'in_transit' or s.status == 'picked_up' %}
-                    <button class="action-btn btn-deliver" onclick="openActionModal({{ s.id }}, 'delivered')">✅ Giao thành công</button>
-                    <button class="action-btn btn-fail" onclick="openActionModal({{ s.id }}, 'failed')">❌ Thất bại</button>
+                <button class="action-btn btn-pickup" onclick="openActionModal({{ s.id }}, 'picked_up')">📦 Xác nhận lấy
+                    hàng</button>
+                {% elif s.status == 'picked_up' %}
+                <button class="action-btn btn-pickup" style="background:#e0e7ff;color:#4338ca;"
+                    onclick="openActionModal({{ s.id }}, 'in_transit')">🚚 Bắt đầu đi giao</button>
+                {% elif s.status == 'in_transit' %}
+                <button class="action-btn btn-deliver" onclick="openActionModal({{ s.id }}, 'delivered')">✅ Giao thành
+                    công</button>
+                <button class="action-btn btn-fail" onclick="openActionModal({{ s.id }}, 'failed')">❌ Thất bại</button>
                 {% elif s.status == 'delivered' %}
-                    <button class="action-btn btn-disabled" style="background: #dcfce3; color: #15803d;">🎉 Đã giao xong</button>
+                <button class="action-btn btn-disabled" style="background: #dcfce3; color: #15803d;">🎉 Đã giao
+                    xong</button>
                 {% elif s.status == 'failed' %}
-                    <button class="action-btn btn-disabled" style="background: #fee2e2; color: #ef4444;">❌ Giao thất bại</button>
+                <button class="action-btn btn-disabled" style="background: #fee2e2; color: #ef4444;">❌ Giao thất
+                    bại</button>
                 {% else %}
-                    <button class="action-btn btn-disabled">{{ s.status|upper }}</button>
+                <button class="action-btn btn-disabled">{{ s.status|upper }}</button>
                 {% endif %}
             </div>
         </div>
@@ -547,14 +616,20 @@
         </div>
 
         <!-- Customer info summary -->
-        <div id="orderDetailMeta" style="background:#f8fafc; border-radius:12px; padding:1rem; margin-bottom:1.2rem; font-size:0.9rem; display:flex; flex-direction:column; gap:0.5rem;"></div>
+        <div id="orderDetailMeta"
+            style="background:#f8fafc; border-radius:12px; padding:1rem; margin-bottom:1.2rem; font-size:0.9rem; display:flex; flex-direction:column; gap:0.5rem;">
+        </div>
 
         <!-- Product items list -->
-        <div style="font-weight:800; font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.8rem;">Sản phẩm đặt mua</div>
+        <div
+            style="font-weight:800; font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.8rem;">
+            Sản phẩm đặt mua</div>
         <div id="orderItemsList">Đang tải...</div>
 
         <!-- Total -->
-        <div id="orderDetailTotal" style="margin-top:1.2rem; padding-top:1rem; border-top:2px dashed #e2e8f0; text-align:right; font-size:1.1rem; font-weight:800; color:var(--primary);"></div>
+        <div id="orderDetailTotal"
+            style="margin-top:1.2rem; padding-top:1rem; border-top:2px dashed #e2e8f0; text-align:right; font-size:1.1rem; font-weight:800; color:var(--primary);">
+        </div>
     </div>
 </div>
 
@@ -571,7 +646,8 @@
 
             <div class="form-group" id="shipperNameGroup">
                 <label>Họ tên Shipper</label>
-                <input type="text" id="shipperName" placeholder="Ví dụ: Nguyễn Văn A" value="{{ request.session.username|default:'' }}" required>
+                <input type="text" id="shipperName" placeholder="Ví dụ: Nguyễn Văn A"
+                    value="{{ request.session.username|default:'' }}" required>
             </div>
 
             <div class="form-group" id="shipperPhoneGroup">
@@ -581,11 +657,13 @@
 
             <div class="form-group">
                 <label>Ghi chú hành trình</label>
-                <textarea id="shipmentNotes" rows="3" placeholder="Ví dụ: Đã nhận hàng từ kho / Đã giao cho bảo vệ..."></textarea>
+                <textarea id="shipmentNotes" rows="3"
+                    placeholder="Ví dụ: Đã nhận hàng từ kho / Đã giao cho bảo vệ..."></textarea>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-                <button type="button" class="btn" style="flex:1; background: #e2e8f0; color: var(--text-main);" onclick="closeActionModal(null)">Hủy</button>
+                <button type="button" class="btn" style="flex:1; background: #e2e8f0; color: var(--text-main);"
+                    onclick="closeActionModal(null)">Hủy</button>
                 <button type="submit" class="btn btn-primary" style="flex:2;">Xác nhận cập nhật</button>
             </div>
         </form>
@@ -713,13 +791,20 @@
 
         notesArea.value = '';
 
-        if (newStatus === 'in_transit') {
-            title.innerText = '🚚 Nhận Đi Giao Lô Hàng #' + shipmentId;
+        if (newStatus === 'picked_up') {
+            title.innerText = '📦 Xác Nhận Lấy Lô Hàng #' + shipmentId;
             nameGroup.style.display = 'block';
             phoneGroup.style.display = 'block';
             nameInput.required = true;
             phoneInput.required = true;
-            notesArea.placeholder = 'Ví dụ: Đã nhận hàng từ kho trung tâm và đang trên đường giao...';
+            notesArea.placeholder = 'Ví dụ: Đã nhận hàng từ kho trung tâm...';
+        } else if (newStatus === 'in_transit') {
+            title.innerText = '🚚 Bắt Đầu Đi Giao Lô Hàng #' + shipmentId;
+            nameGroup.style.display = 'none';
+            phoneGroup.style.display = 'none';
+            nameInput.required = false;
+            phoneInput.required = false;
+            notesArea.placeholder = 'Ví dụ: Đang trên đường giao hàng...';
         } else {
             title.innerText = newStatus === 'delivered' ? '✅ Xác Nhận Giao Thành Công' : '❌ Báo Cáo Giao Thất Bại';
             // When completing or failing, shipper info can be hidden or kept optional
@@ -750,7 +835,7 @@
         const notes = document.getElementById('shipmentNotes').value;
 
         const payload = { status: newStatus };
-        if (newStatus === 'in_transit') {
+        if (newStatus === 'picked_up') {
             payload.shipper_name = shipperName;
             payload.shipper_phone = shipperPhone;
         }

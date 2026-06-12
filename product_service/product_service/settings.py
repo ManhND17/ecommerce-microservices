@@ -145,3 +145,5 @@ REST_FRAMEWORK = {
     ],
 }
 
+
+SESSION_COOKIE_NAME = 'product_sessionid'

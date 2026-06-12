@@ -148,3 +148,5 @@ SIMPLE_JWT = {
 }
 
 RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST', 'localhost')
+
+SESSION_COOKIE_NAME = 'user_sessionid'

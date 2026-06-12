@@ -14,6 +14,7 @@ from .views import (
     # Admin — User overview
     UserListView,
     CustomerListView,
+    CustomerDetailView,
     user_stats_view,
 )
 
@@ -55,6 +56,10 @@ urlpatterns = [
     path('admin/customers/',
          CustomerListView.as_view(),
          name='admin-customer-list'),
+
+    path('admin/customers/<int:pk>/',
+         CustomerDetailView.as_view(),
+         name='admin-customer-detail'),
 
     # Thống kê nhanh (Admin only)
     path('admin/stats/',

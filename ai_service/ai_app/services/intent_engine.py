@@ -64,18 +64,38 @@ CATEGORY_PATTERNS: Dict[str, List[str]] = {
         "điện thoại", "smartphone", "iphone", "android", "dt",
         "dien thoai", "phone", "mobile"
     ],
+    "smartwatch": [
+        "đồng hồ", "smartwatch", "apple watch", "watch"
+    ],
+    "tablet": [
+        "máy tính bảng", "tablet", "ipad", "tab"
+    ],
     "books": [
         "sách", "book", "tiểu thuyết", "truyện", "giáo trình",
         "tài liệu", "novel"
     ],
-    "clothes": [
-        "áo", "quần", "thời trang", "váy", "jacket", "hoodie",
-        "tshirt", "t-shirt", "clothes", "fashion", "phụ kiện thời trang"
+    "shoes": [
+        "giày", "dép", "sneaker", "shoes", "giầy"
     ],
-    "accessories": [
+    "home-appliances": [
+        "gia dụng", "nhà cửa", "tủ lạnh", "máy giặt", "tivi", "tv", 
+        "điều hòa", "bếp", "nồi", "quạt", "lò vi sóng"
+    ],
+    "male-fashion": [
+        "áo nam", "quần nam", "thời trang nam", "đồ nam"
+    ],
+    "female-fashion": [
+        "áo nữ", "quần nữ", "thời trang nữ", "váy", "đầm", "đồ nữ"
+    ],
+    "clothes": [
+        "áo", "quần", "thời trang", "jacket", "hoodie",
+        "tshirt", "t-shirt", "clothes", "fashion", "phụ kiện thời trang",
+        "quần áo", "trang phục"
+    ],
+    "tech-accessories": [
         "tai nghe", "earphone", "headphone", "chuột", "mouse",
         "bàn phím", "keyboard", "sạc", "cáp", "case", "ốp lưng",
-        "pin dự phòng", "powerbank"
+        "pin dự phòng", "powerbank", "phụ kiện"
     ],
 }
 
@@ -210,10 +230,9 @@ def extract_category(query: str) -> Optional[str]:
         Tên danh mục (catalog_slug) hoặc None nếu không xác định được.
     """
     q = _normalize(query)
-    # Ưu tiên theo thứ tự cụ thể hơn trước
-    priority = ["accessories", "mobile", "laptop", "books", "clothes"]
-    for cat in priority:
-        for kw in CATEGORY_PATTERNS[cat]:
+    # Ưu tiên duyệt tất cả các danh mục
+    for cat, keywords in CATEGORY_PATTERNS.items():
+        for kw in keywords:
             if kw in q:
                 return cat
     return None
